@@ -12,3 +12,133 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role
+  status    Status
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  supplier  Supplier?
+}
+
+enum Role {
+  supplier
+  admin
+  manager
+  viewer
+}
+
+enum Status {
+  active
+  inactive
+}
+
+model Supplier {
+  id                 String          @id @default(cuid())
+  user               User            @relation(fields: [userId], references: [id])
+  userId             String          @unique
+  companyName        String
+  tpin               String
+  registrationNumber String
+  contactPerson      String
+  phone              String
+  email              String
+  address            String
+  status             SupplierStatus  @default(pending)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  applications       Application[]
+}
+
+enum SupplierStatus {
+  pending
+  active
+  suspended
+}
+
+model Category {
+  id               String          @id @default(cuid())
+  name             String
+  description      String?
+  applicationFee   Float
+  documentTemplate String
+  status           CategoryStatus  @default(active)
+  createdAt        DateTime        @default(now())
+  applications     Application[]
+}
+
+enum CategoryStatus {
+  active
+  inactive
+}
+
+model Application {
+  id          String             @id @default(cuid())
+  supplier    Supplier           @relation(fields: [supplierId], references: [id])
+  supplierId  String
+  category    Category           @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  status      ApplicationStatus  @default(draft)
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  remarks     String?
+  createdAt   DateTime           @default(now())
+  documents   Document[]
+  payments    Payment[]
+}
+
+enum ApplicationStatus {
+  draft
+  submitted
+  under_review
+  approved
+  rejected
+}
+
+model Document {
+  id            String       @id @default(cuid())
+  application   Application  @relation(fields: [applicationId], references: [id])
+  applicationId String
+  type          DocumentType
+  fileName      String
+  filePath      String
+  uploadedAt    DateTime     @default(now())
+}
+
+enum DocumentType {
+  business_registration
+  tax_certificate
+  bank_letter
+  insurance
+  other
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  application    Application   @relation(fields: [applicationId], references: [id])
+  applicationId  String
+  amount         Float
+  method         PaymentMethod
+  transactionRef String
+  proofFile      String
+  status         PaymentStatus @default(pending)
+  submittedAt    DateTime      @default(now())
+  verifiedAt     DateTime?
+  verifiedBy     String?
+}
+
+enum PaymentMethod {
+  bank_transfer
+  mobile_money
+  card
+}
+
+enum PaymentStatus {
+  pending
+  verified
+  rejected
+}
