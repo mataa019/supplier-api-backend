@@ -21,7 +21,7 @@ export class AuthService {
     private auditService: AuditService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, ipAddress?: string) {
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -68,6 +68,7 @@ export class AuthService {
       entity: AuditEntity.USER,
       entityId: user.id,
       details: { email: user.email, role: user.role },
+      ipAddress,
     });
 
     return {
@@ -82,7 +83,7 @@ export class AuthService {
     };
   }
 
-  async registerAdmin(dto: AdminRegisterDto) {
+  async registerAdmin(dto: AdminRegisterDto, ipAddress?: string) {
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -115,6 +116,7 @@ export class AuthService {
       entity: AuditEntity.USER,
       entityId: user.id,
       details: { email: user.email, role: user.role },
+      ipAddress,
     });
 
     return {
@@ -128,7 +130,7 @@ export class AuthService {
     };
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, ipAddress?: string) {
     // Find user
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -143,6 +145,7 @@ export class AuthService {
         entity: AuditEntity.USER,
         entityId: user?.id,
         details: { email: dto.email, reason },
+        ipAddress,
       });
       throw new UnauthorizedException(message);
     };
@@ -171,6 +174,7 @@ export class AuthService {
       entity: AuditEntity.USER,
       entityId: user.id,
       details: { email: user.email, role: user.role },
+      ipAddress,
     });
 
     return {

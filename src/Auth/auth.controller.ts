@@ -19,6 +19,7 @@ import {
   ApiPublicEndpoint,
   ApiProtectedEndpoint,
   ApiAdminEndpoint,
+  ClientIp,
 } from '../common/decorators';
 
 @ApiTags('Auth')
@@ -28,20 +29,20 @@ export class AuthController {
 
   @Post('register')
   @ApiCreateEndpoint('Register a new supplier', 'User registered successfully')
-  async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  async register(@Body() dto: RegisterDto, @ClientIp() ip: string) {
+    return this.authService.register(dto, ip);
   }
 
   @Post('register/admin')
   @ApiCreateEndpoint('Register a new admin (email and password only)', 'Admin registered successfully')
-  async registerAdmin(@Body() dto: AdminRegisterDto) {
-    return this.authService.registerAdmin(dto);
+  async registerAdmin(@Body() dto: AdminRegisterDto, @ClientIp() ip: string) {
+    return this.authService.registerAdmin(dto, ip);
   }
 
   @Post('login')
   @ApiPublicEndpoint('Login with email and password', 'Login successful')
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(@Body() dto: LoginDto, @ClientIp() ip: string) {
+    return this.authService.login(dto, ip);
   }
 
   @UseGuards(AuthGuard('jwt'))
