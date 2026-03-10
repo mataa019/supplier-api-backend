@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, IsPhoneNumber, IsOptional } from 'class-validator';
 
 export enum Role {
   supplier = 'supplier',
@@ -7,6 +7,22 @@ export enum Role {
 }
 
 export class RegisterDto {
+  @IsString()
+  @IsNotEmpty()
+  companyName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  registrationNumber: string;
+
+  @IsString()
+  @IsNotEmpty()
+  tpin: string;
+
+  @IsString()
+  @IsNotEmpty()
+  phone: string;
+
   @IsEmail()
   @IsNotEmpty()
   email: string;
@@ -17,6 +33,6 @@ export class RegisterDto {
   password: string;
 
   @IsEnum(Role)
-  @IsNotEmpty()
-  role: Role;
+  @IsOptional()
+  role?: Role = Role.supplier;
 }
