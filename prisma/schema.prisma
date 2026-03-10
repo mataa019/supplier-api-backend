@@ -28,7 +28,6 @@ enum Role {
   supplier
   admin
   manager
-  viewer
 }
 
 enum Status {
