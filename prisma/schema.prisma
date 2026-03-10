@@ -1,16 +1,12 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary"
   // output path omitted so Prisma uses the default location under node_modules
 }
 
 datasource db {
   provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model Audit {
@@ -24,6 +20,7 @@ model Audit {
   ipAddress String?      // client IP for security audits
   createdAt DateTime @default(now())
 }
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -152,4 +149,17 @@ enum PaymentStatus {
   pending
   verified
   rejected
+}
+
+
+enum payment_status {
+  pending
+  verified
+  rejected
+}
+
+enum supplier_status {
+  pending
+  active
+  suspended
 }

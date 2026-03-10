@@ -10,8 +10,10 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
+import { AdminRegisterDto } from './dto/admin-register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtUser } from './jwt/types';
+import { Roles, RolesGuard } from './jwt/roles';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -24,6 +26,14 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'Email already registered' })
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
+  }
+
+  @Post('register/admin')
+  @ApiOperation({ summary: 'Register a new admin (email and password only)' })
+  @ApiResponse({ status: 201, description: 'Admin registered successfully' })
+  @ApiResponse({ status: 409, description: 'Email already registered' })
+  async registerAdmin(@Body() dto: AdminRegisterDto) {
+    return this.authService.registerAdmin(dto);
   }
 
   @Post('login')
@@ -44,16 +54,21 @@ export class AuthController {
     return req.user;
   }
 
-//   // admin-only endpoint
-//   @UseGuards(AuthGuard('jwt'), RolesGuard)
-//   @Roles('admin')
-//   @Get('admin-only')
-//   async adminOnly(@Request() req: { user: JwtUser }) {
-//     return {
-//       message: 'You have admin access',
-//       user: req.user,
-//     };
-//   }
+  // admin-only endpoint
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Get('admin-only')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin-only endpoint' })
+  @ApiResponse({ status: 200, description: 'Returns admin access confirmation' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
+  async adminOnly(@Request() req: { user: JwtUser }) {
+    return {
+      message: 'You have admin access',
+      user: req.user,
+    };
+  }
 
 //   // manager-only endpoint
 //   @UseGuards(AuthGuard('jwt'), RolesGuard)

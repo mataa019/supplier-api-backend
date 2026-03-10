@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction, AuditEntity } from '../audit/audit.types';
 import { RegisterDto } from './dto/register.dto';
+import { AdminRegisterDto } from './dto/admin-register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './jwt/types';
 
@@ -76,6 +77,52 @@ export class AuthService {
         email: user.email,
         role: user.role,
         supplier: user.supplier,
+      },
+      accessToken: token,
+    };
+  }
+
+  async registerAdmin(dto: AdminRegisterDto) {
+    // Check if user already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Email already registered');
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+    // Create admin user (no supplier relation)
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        password: hashedPassword,
+        role: 'admin',
+        status: 'active',
+      },
+    });
+
+    // Generate token
+    const token = this.generateToken(user.id, user.email, user.role);
+
+    // Audit: admin registration
+    await this.auditService.log({
+      userId: user.id,
+      action: AuditAction.REGISTER,
+      entity: AuditEntity.USER,
+      entityId: user.id,
+      details: { email: user.email, role: user.role },
+    });
+
+    return {
+      message: 'Admin registration successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
       },
       accessToken: token,
     };
