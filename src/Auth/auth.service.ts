@@ -6,6 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './jwt/types';
@@ -15,6 +16,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private auditService: AuditService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -57,6 +59,15 @@ export class AuthService {
     // Generate token
     const token = this.generateToken(user.id, user.email, user.role);
 
+    // Audit: registration
+    await this.auditService.log({
+      userId: user.id,
+      action: 'REGISTER',
+      entity: 'User',
+      entityId: user.id,
+      details: JSON.stringify({ email: user.email, role: user.role }),
+    });
+
     return {
       message: 'Registration successful',
       user: {
@@ -77,6 +88,12 @@ export class AuthService {
     });
 
     if (!user) {
+      // Audit: failed login (unknown email)
+      await this.auditService.log({
+        action: 'LOGIN_FAILED',
+        entity: 'User',
+        details: JSON.stringify({ email: dto.email, reason: 'User not found' }),
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -84,16 +101,41 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
+      // Audit: failed login (wrong password)
+      await this.auditService.log({
+        userId: user.id,
+        action: 'LOGIN_FAILED',
+        entity: 'User',
+        entityId: user.id,
+        details: JSON.stringify({ email: dto.email, reason: 'Invalid password' }),
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check if user is active
     if (user.status !== 'active') {
+      // Audit: failed login (inactive account)
+      await this.auditService.log({
+        userId: user.id,
+        action: 'LOGIN_FAILED',
+        entity: 'User',
+        entityId: user.id,
+        details: JSON.stringify({ email: dto.email, reason: 'Account inactive' }),
+      });
       throw new UnauthorizedException('Account is inactive');
     }
 
     // Generate token
     const token = this.generateToken(user.id, user.email, user.role);
+
+    // Audit: successful login
+    await this.auditService.log({
+      userId: user.id,
+      action: 'LOGIN',
+      entity: 'User',
+      entityId: user.id,
+      details: JSON.stringify({ email: user.email, role: user.role }),
+    });
 
     return {
       message: 'Login successful',
