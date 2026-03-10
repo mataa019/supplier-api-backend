@@ -114,7 +114,6 @@ export class AuthService {
     if (user.status !== 'active') {
       return failLogin('Account inactive', 'Account is inactive');
     }
-
     // Generate token
     const token = this.generateToken(user.id, user.email, user.role);
 
