@@ -88,42 +88,31 @@ export class AuthService {
       include: { supplier: true },
     });
 
-    if (!user) {
-      // Audit: failed login (unknown email)
+    // Helper to log failed login and throw
+    const failLogin = async (reason: string, message = 'Invalid credentials'): Promise<never> => {
       await this.auditService.log({
+        userId: user?.id,
         action: AuditAction.LOGIN_FAILED,
         entity: AuditEntity.USER,
-        details: { email: dto.email, reason: 'User not found' },
+        entityId: user?.id,
+        details: { email: dto.email, reason },
       });
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(message);
+    };
+
+    if (!user) {
+      return failLogin('User not found');
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
-
     if (!isPasswordValid) {
-      // Audit: failed login (wrong password)
-      await this.auditService.log({
-        userId: user.id,
-        action: AuditAction.LOGIN_FAILED,
-        entity: AuditEntity.USER,
-        entityId: user.id,
-        details: { email: dto.email, reason: 'Invalid password' },
-      });
-      throw new UnauthorizedException('Invalid credentials');
+      return failLogin('Invalid password');
     }
 
     // Check if user is active
     if (user.status !== 'active') {
-      // Audit: failed login (inactive account)
-      await this.auditService.log({
-        userId: user.id,
-        action: AuditAction.LOGIN_FAILED,
-        entity: AuditEntity.USER,
-        entityId: user.id,
-        details: { email: dto.email, reason: 'Account inactive' },
-      });
-      throw new UnauthorizedException('Account is inactive');
+      return failLogin('Account inactive', 'Account is inactive');
     }
 
     // Generate token

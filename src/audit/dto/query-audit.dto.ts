@@ -1,5 +1,6 @@
-import { IsOptional, IsString, IsDateString, IsNumber, Min } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsNumber, Min, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
+import { AuditAction, AuditEntity } from '../audit.types';
 
 export class QueryAuditDto {
   @IsOptional()
@@ -7,12 +8,12 @@ export class QueryAuditDto {
   userId?: string;
 
   @IsOptional()
-  @IsString()
-  action?: string;
+  @IsEnum(AuditAction)
+  action?: AuditAction;
 
   @IsOptional()
-  @IsString()
-  entity?: string;
+  @IsEnum(AuditEntity)
+  entity?: AuditEntity;
 
   @IsOptional()
   @IsDateString()
