@@ -13,7 +13,7 @@ import { AuditService } from './audit.service';
 import { QueryAuditDto } from './dto/query-audit.dto';
 
 @ApiTags('Audit')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @Controller('audit')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles('admin')

@@ -177,9 +177,7 @@ export class AuthService {
       message: 'Login successful',
       user: {
         id: user.id,
-        email: user.email,
         role: user.role,
-        supplier: user.supplier,
       },
       accessToken: token,
     };

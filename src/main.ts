@@ -14,7 +14,17 @@ async function bootstrap() {
     .setTitle('Supplier API')
     .setDescription('API for supplier registration and management')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth', // This name must match the @ApiBearerAuth() decorator
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

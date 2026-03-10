@@ -46,7 +46,7 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('profile')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Returns user profile' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -58,7 +58,7 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Get('admin-only')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Admin-only endpoint' })
   @ApiResponse({ status: 200, description: 'Returns admin access confirmation' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
