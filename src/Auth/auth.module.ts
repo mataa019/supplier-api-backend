@@ -17,7 +17,9 @@ import { PrismaService } from 'prisma/prisma.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '1h' },
+        // expiresIn accepts number or string, but the Nest types are picky;
+        // cast to unknown to satisfy the compiler
+        signOptions: { expiresIn: '1h' as unknown as number },
       }),
     }),
   ],
