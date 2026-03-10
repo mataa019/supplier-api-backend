@@ -4,6 +4,7 @@ export enum Role {
   supplier = 'supplier',
   admin = 'admin',
   manager = 'manager',
+  viewer = 'viewer',
 }
 
 export class RegisterDto {
