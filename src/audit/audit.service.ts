@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditAction, AuditEntity } from './audit.types';
 
 export interface AuditLogParams {
   userId?: string;
-  action: string;
-  entity?: string;
+  action: AuditAction;
+  entity?: AuditEntity;
   entityId?: string;
-  details?: string;
+  details?: Record<string, unknown>;
   ipAddress?: string;
 }
 
@@ -14,7 +15,17 @@ export interface AuditLogParams {
 export class AuditService {
   constructor(private prisma: PrismaService) {}
 
-  /** Write an audit trail entry */
+  /**
+   * Write an audit trail entry
+   * @example
+   * await this.audit.log({
+   *   userId: user.id,
+   *   action: AuditAction.LOGIN,
+   *   entity: AuditEntity.USER,
+   *   entityId: user.id,
+   *   details: { email: user.email },
+   * });
+   */
   async log(params: AuditLogParams) {
     return this.prisma.audit.create({
       data: {
@@ -22,7 +33,7 @@ export class AuditService {
         action: params.action,
         entity: params.entity,
         entityId: params.entityId,
-        details: params.details,
+        details: params.details ? JSON.stringify(params.details) : undefined,
         ipAddress: params.ipAddress,
       },
     });
@@ -31,8 +42,8 @@ export class AuditService {
   /** List audit entries with optional filters and pagination */
   async findAll(query: {
     userId?: string;
-    action?: string;
-    entity?: string;
+    action?: AuditAction;
+    entity?: AuditEntity;
     from?: string;
     to?: string;
     page?: number;
@@ -88,87 +99,6 @@ export class AuditService {
           select: { id: true, email: true, role: true },
         },
       },
-    });
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Convenience methods for common audit actions
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  async logRegister(userId: string, email: string, role: string, ip?: string) {
-    return this.log({
-      userId,
-      action: 'REGISTER',
-      entity: 'User',
-      entityId: userId,
-      details: JSON.stringify({ email, role }),
-      ipAddress: ip,
-    });
-  }
-
-  async logLogin(userId: string, email: string, role: string, ip?: string) {
-    return this.log({
-      userId,
-      action: 'LOGIN',
-      entity: 'User',
-      entityId: userId,
-      details: JSON.stringify({ email, role }),
-      ipAddress: ip,
-    });
-  }
-
-  async logLoginFailed(email: string, reason: string, userId?: string, ip?: string) {
-    return this.log({
-      userId,
-      action: 'LOGIN_FAILED',
-      entity: 'User',
-      entityId: userId,
-      details: JSON.stringify({ email, reason }),
-      ipAddress: ip,
-    });
-  }
-
-  async logLogout(userId: string, email: string, ip?: string) {
-    return this.log({
-      userId,
-      action: 'LOGOUT',
-      entity: 'User',
-      entityId: userId,
-      details: JSON.stringify({ email }),
-      ipAddress: ip,
-    });
-  }
-
-  async logCreateUser(adminId: string, createdUserId: string, email: string, role: string, ip?: string) {
-    return this.log({
-      userId: adminId,
-      action: 'CREATE_USER',
-      entity: 'User',
-      entityId: createdUserId,
-      details: JSON.stringify({ email, role }),
-      ipAddress: ip,
-    });
-  }
-
-  async logUpdateUser(adminId: string, targetUserId: string, changes: Record<string, unknown>, ip?: string) {
-    return this.log({
-      userId: adminId,
-      action: 'UPDATE_USER',
-      entity: 'User',
-      entityId: targetUserId,
-      details: JSON.stringify(changes),
-      ipAddress: ip,
-    });
-  }
-
-  async logDeleteUser(adminId: string, deletedUserId: string, email: string, ip?: string) {
-    return this.log({
-      userId: adminId,
-      action: 'DELETE_USER',
-      entity: 'User',
-      entityId: deletedUserId,
-      details: JSON.stringify({ email }),
-      ipAddress: ip,
     });
   }
 }
