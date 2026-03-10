@@ -90,4 +90,85 @@ export class AuditService {
       },
     });
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Convenience methods for common audit actions
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  async logRegister(userId: string, email: string, role: string, ip?: string) {
+    return this.log({
+      userId,
+      action: 'REGISTER',
+      entity: 'User',
+      entityId: userId,
+      details: JSON.stringify({ email, role }),
+      ipAddress: ip,
+    });
+  }
+
+  async logLogin(userId: string, email: string, role: string, ip?: string) {
+    return this.log({
+      userId,
+      action: 'LOGIN',
+      entity: 'User',
+      entityId: userId,
+      details: JSON.stringify({ email, role }),
+      ipAddress: ip,
+    });
+  }
+
+  async logLoginFailed(email: string, reason: string, userId?: string, ip?: string) {
+    return this.log({
+      userId,
+      action: 'LOGIN_FAILED',
+      entity: 'User',
+      entityId: userId,
+      details: JSON.stringify({ email, reason }),
+      ipAddress: ip,
+    });
+  }
+
+  async logLogout(userId: string, email: string, ip?: string) {
+    return this.log({
+      userId,
+      action: 'LOGOUT',
+      entity: 'User',
+      entityId: userId,
+      details: JSON.stringify({ email }),
+      ipAddress: ip,
+    });
+  }
+
+  async logCreateUser(adminId: string, createdUserId: string, email: string, role: string, ip?: string) {
+    return this.log({
+      userId: adminId,
+      action: 'CREATE_USER',
+      entity: 'User',
+      entityId: createdUserId,
+      details: JSON.stringify({ email, role }),
+      ipAddress: ip,
+    });
+  }
+
+  async logUpdateUser(adminId: string, targetUserId: string, changes: Record<string, unknown>, ip?: string) {
+    return this.log({
+      userId: adminId,
+      action: 'UPDATE_USER',
+      entity: 'User',
+      entityId: targetUserId,
+      details: JSON.stringify(changes),
+      ipAddress: ip,
+    });
+  }
+
+  async logDeleteUser(adminId: string, deletedUserId: string, email: string, ip?: string) {
+    return this.log({
+      userId: adminId,
+      action: 'DELETE_USER',
+      entity: 'User',
+      entityId: deletedUserId,
+      details: JSON.stringify({ email }),
+      ipAddress: ip,
+    });
+  }
 }

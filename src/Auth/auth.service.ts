@@ -60,13 +60,7 @@ export class AuthService {
     const token = this.generateToken(user.id, user.email, user.role);
 
     // Audit: registration
-    await this.auditService.log({
-      userId: user.id,
-      action: 'REGISTER',
-      entity: 'User',
-      entityId: user.id,
-      details: JSON.stringify({ email: user.email, role: user.role }),
-    });
+    await this.auditService.logRegister(user.id, user.email, user.role);
 
     return {
       message: 'Registration successful',
@@ -89,11 +83,7 @@ export class AuthService {
 
     if (!user) {
       // Audit: failed login (unknown email)
-      await this.auditService.log({
-        action: 'LOGIN_FAILED',
-        entity: 'User',
-        details: JSON.stringify({ email: dto.email, reason: 'User not found' }),
-      });
+      await this.auditService.logLoginFailed(dto.email, 'User not found');
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -102,26 +92,14 @@ export class AuthService {
 
     if (!isPasswordValid) {
       // Audit: failed login (wrong password)
-      await this.auditService.log({
-        userId: user.id,
-        action: 'LOGIN_FAILED',
-        entity: 'User',
-        entityId: user.id,
-        details: JSON.stringify({ email: dto.email, reason: 'Invalid password' }),
-      });
+      await this.auditService.logLoginFailed(dto.email, 'Invalid password', user.id);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check if user is active
     if (user.status !== 'active') {
       // Audit: failed login (inactive account)
-      await this.auditService.log({
-        userId: user.id,
-        action: 'LOGIN_FAILED',
-        entity: 'User',
-        entityId: user.id,
-        details: JSON.stringify({ email: dto.email, reason: 'Account inactive' }),
-      });
+      await this.auditService.logLoginFailed(dto.email, 'Account inactive', user.id);
       throw new UnauthorizedException('Account is inactive');
     }
 
@@ -129,13 +107,7 @@ export class AuthService {
     const token = this.generateToken(user.id, user.email, user.role);
 
     // Audit: successful login
-    await this.auditService.log({
-      userId: user.id,
-      action: 'LOGIN',
-      entity: 'User',
-      entityId: user.id,
-      details: JSON.stringify({ email: user.email, role: user.role }),
-    });
+    await this.auditService.logLogin(user.id, user.email, user.role);
 
     return {
       message: 'Login successful',
