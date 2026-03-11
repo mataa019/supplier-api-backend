@@ -12,6 +12,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { AdminRegisterDto } from './dto/admin-register.dto';
 import { LoginDto } from './dto/login.dto';
+import { VerifyOtpDto, ResendOtpDto } from './dto/verify-otp.dto';
 import { JwtUser } from './jwt/types';
 import { Roles, RolesGuard } from './jwt/roles';
 import {
@@ -43,6 +44,18 @@ export class AuthController {
   @ApiPublicEndpoint('Login with email and password', 'Login successful')
   async login(@Body() dto: LoginDto, @ClientIp() ip: string) {
     return this.authService.login(dto, ip);
+  }
+
+  @Post('verify-otp')
+  @ApiPublicEndpoint('Verify email with OTP', 'Email verified successfully')
+  async verifyOtp(@Body() dto: VerifyOtpDto, @ClientIp() ip: string) {
+    return this.authService.verifyOtp(dto, ip);
+  }
+
+  @Post('resend-otp')
+  @ApiPublicEndpoint('Resend OTP to email', 'OTP sent successfully')
+  async resendOtp(@Body() dto: ResendOtpDto, @ClientIp() ip: string) {
+    return this.authService.resendOtp(dto, ip);
   }
 
   @UseGuards(AuthGuard('jwt'))

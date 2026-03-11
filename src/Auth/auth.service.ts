@@ -2,15 +2,19 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction, AuditEntity } from '../audit/audit.types';
+import { MailService } from '../mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { AdminRegisterDto } from './dto/admin-register.dto';
 import { LoginDto } from './dto/login.dto';
+import { VerifyOtpDto, ResendOtpDto } from './dto/verify-otp.dto';
 import { JwtPayload } from './jwt/types';
 
 @Injectable()
@@ -19,7 +23,16 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private auditService: AuditService,
+    private mailService: MailService,
   ) {}
+
+  private generateOtp(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  private getOtpExpiry(): Date {
+    return new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+  }
 
   async register(dto: RegisterDto, ipAddress?: string) {
     // Check if user already exists
@@ -58,8 +71,19 @@ export class AuthService {
       },
     });
 
-    // Generate token
-    const token = this.generateToken(user.id, user.email, user.role);
+    // Generate and store OTP
+    const otp = this.generateOtp();
+    await this.prisma.otp.create({
+      data: {
+        userId: user.id,
+        code: otp,
+        type: 'email_verification',
+        expiresAt: this.getOtpExpiry(),
+      },
+    });
+
+    // Send OTP email
+    await this.mailService.sendOtp(user.email, otp);
 
     // Audit: registration
     await this.auditService.log({
@@ -72,14 +96,13 @@ export class AuthService {
     });
 
     return {
-      message: 'Registration successful',
+      message: 'Registration successful. Please verify your email with the OTP sent.',
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
         supplier: user.supplier,
       },
-      accessToken: token,
     };
   }
 
@@ -195,6 +218,130 @@ export class AuthService {
     };
 
     return this.jwtService.sign(payload);
+  }
+
+  async verifyOtp(dto: VerifyOtpDto, ipAddress?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      include: { supplier: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.emailVerified) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    // Find valid OTP
+    const otpRecord = await this.prisma.otp.findFirst({
+      where: {
+        userId: user.id,
+        code: dto.otp,
+        type: 'email_verification',
+        used: false,
+        expiresAt: { gte: new Date() },
+      },
+    });
+
+    if (!otpRecord) {
+      await this.auditService.log({
+        userId: user.id,
+        action: AuditAction.LOGIN_FAILED,
+        entity: AuditEntity.USER,
+        entityId: user.id,
+        details: { reason: 'Invalid or expired OTP' },
+        ipAddress,
+      });
+      throw new BadRequestException('Invalid or expired OTP');
+    }
+
+    // Mark OTP as used and verify email
+    await this.prisma.$transaction([
+      this.prisma.otp.update({
+        where: { id: otpRecord.id },
+        data: { used: true },
+      }),
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true },
+      }),
+    ]);
+
+    // Generate token after successful verification
+    const token = this.generateToken(user.id, user.email, user.role);
+
+    await this.auditService.log({
+      userId: user.id,
+      action: AuditAction.LOGIN,
+      entity: AuditEntity.USER,
+      entityId: user.id,
+      details: { email: user.email, action: 'email_verified' },
+      ipAddress,
+    });
+
+    return {
+      message: 'Email verified successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        supplier: user.supplier,
+      },
+      accessToken: token,
+    };
+  }
+
+  async resendOtp(dto: ResendOtpDto, ipAddress?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.emailVerified) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    // Invalidate previous OTPs
+    await this.prisma.otp.updateMany({
+      where: {
+        userId: user.id,
+        type: 'email_verification',
+        used: false,
+      },
+      data: { used: true },
+    });
+
+    // Generate new OTP
+    const otp = this.generateOtp();
+    await this.prisma.otp.create({
+      data: {
+        userId: user.id,
+        code: otp,
+        type: 'email_verification',
+        expiresAt: this.getOtpExpiry(),
+      },
+    });
+
+    // Send OTP email
+    await this.mailService.sendOtp(user.email, otp);
+
+    await this.auditService.log({
+      userId: user.id,
+      action: AuditAction.REGISTER,
+      entity: AuditEntity.USER,
+      entityId: user.id,
+      details: { action: 'otp_resent' },
+      ipAddress,
+    });
+
+    return {
+      message: 'OTP sent successfully',
+    };
   }
 }
 
