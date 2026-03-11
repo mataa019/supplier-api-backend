@@ -22,15 +22,35 @@ model Audit {
 }
 
 model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  role          Role
+  status        Status
+  emailVerified Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  supplier      Supplier?
+  audits        Audit[]
+  otps          Otp[]
+}
+
+model Otp {
   id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      Role
-  status    Status
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  code      String
+  type      OtpType  @default(email_verification)
+  expiresAt DateTime
+  used      Boolean  @default(false)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  supplier  Supplier?
-  audits    Audit[]
+
+  @@index([userId, type])
+}
+
+enum OtpType {
+  email_verification
+  password_reset
 }
 
 enum Role {
