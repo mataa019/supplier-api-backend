@@ -5,16 +5,16 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateAdminUserDto } from './dto/create-admin-user.dto';
-import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class AdminService {
 	constructor(private prisma: PrismaService) {}
 
-	async listAdminUsers() {
+	async listUsers() {
 		return this.prisma.user.findMany({
-			where: { role: 'admin' },
+			where: { NOT: { role: 'admin' } },
 			orderBy: { createdAt: 'desc' },
 			select: {
 				id: true,
@@ -28,9 +28,9 @@ export class AdminService {
 		});
 	}
 
-	async getAdminUser(userId: string) {
+	async getUser(userId: string) {
 		const user = await this.prisma.user.findFirst({
-			where: { id: userId, role: 'admin' },
+			where: { id: userId, NOT: { role: 'admin' } },
 			select: {
 				id: true,
 				email: true,
@@ -43,13 +43,13 @@ export class AdminService {
 		});
 
 		if (!user) {
-			throw new NotFoundException('Admin user not found');
+			throw new NotFoundException('User not found');
 		}
 
 		return user;
 	}
 
-	async createAdminUser(dto: CreateAdminUserDto) {
+	async createUser(dto: CreateUserDto) {
 		const existingUser = await this.prisma.user.findUnique({
 			where: { email: dto.email },
 		});
@@ -64,7 +64,7 @@ export class AdminService {
 			data: {
 				email: dto.email,
 				password: hashedPassword,
-				role: 'admin',
+				role: dto.role ?? 'supplier',
 				status: 'active',
 			},
 			select: {
@@ -79,13 +79,13 @@ export class AdminService {
 		});
 	}
 
-	async updateAdminUser(userId: string, dto: UpdateAdminUserDto) {
+	async updateUser(userId: string, dto: UpdateUserDto) {
 		const existingUser = await this.prisma.user.findFirst({
-			where: { id: userId, role: 'admin' },
+			where: { id: userId, NOT: { role: 'admin' } },
 		});
 
 		if (!existingUser) {
-			throw new NotFoundException('Admin user not found');
+			throw new NotFoundException('User not found');
 		}
 
 		if (dto.email && dto.email !== existingUser.email) {
@@ -101,6 +101,7 @@ export class AdminService {
 			email?: string;
 			password?: string;
 			status?: 'active' | 'inactive';
+			role?: 'supplier' | 'manager';
 		} = {};
 
 		if (dto.email) {
@@ -113,6 +114,10 @@ export class AdminService {
 
 		if (dto.status) {
 			data.status = dto.status;
+		}
+
+		if (dto.role) {
+			data.role = dto.role;
 		}
 
 		return this.prisma.user.update({
@@ -130,14 +135,14 @@ export class AdminService {
 		});
 	}
 
-	async toggleAdminUserStatus(userId: string) {
+	async toggleUserStatus(userId: string) {
 		const existingUser = await this.prisma.user.findFirst({
-			where: { id: userId, role: 'admin' },
+			where: { id: userId, NOT: { role: 'admin' } },
 			select: { id: true, status: true },
 		});
 
 		if (!existingUser) {
-			throw new NotFoundException('Admin user not found');
+			throw new NotFoundException('User not found');
 		}
 
 		const nextStatus = existingUser.status === 'active' ? 'inactive' : 'active';
@@ -157,20 +162,20 @@ export class AdminService {
 		});
 	}
 
-	async deleteAdminUser(userId: string) {
+	async deleteUser(userId: string) {
 		const existingUser = await this.prisma.user.findFirst({
-			where: { id: userId, role: 'admin' },
+			where: { id: userId, NOT: { role: 'admin' } },
 			select: { id: true },
 		});
 
 		if (!existingUser) {
-			throw new NotFoundException('Admin user not found');
+			throw new NotFoundException('User not found');
 		}
 
 		await this.prisma.user.delete({
 			where: { id: userId },
 		});
 
-		return { message: 'Admin user deleted successfully' };
+		return { message: 'User deleted successfully' };
 	}
 }

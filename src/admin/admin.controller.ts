@@ -12,8 +12,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles, RolesGuard } from '../Auth/jwt/roles';
 import { AdminService } from './admin.service';
-import { CreateAdminUserDto } from './dto/create-admin-user.dto';
-import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import {
 	ApiAdminEndpoint,
 	ApiGetByIdEndpoint,
@@ -42,7 +42,7 @@ export class AdminController {
 
 	@Post()
 	@ApiProtectedCreateEndpoint('Create user', 'User created')
-	async createUser(@Body() dto: CreateAdminUserDto) {
+	async createUser(@Body() dto: CreateUserDto) {
 		return this.adminService.createUser(dto);
 	}
 
@@ -50,7 +50,7 @@ export class AdminController {
 	@ApiAdminEndpoint('Update user', 'User updated')
 	async updateUser(
 		@Param('userId') userId: string,
-		@Body() dto: UpdateAdminUserDto,
+		@Body() dto: UpdateUserDto,
 	) {
 		return this.adminService.updateUser(userId, dto);
 	}

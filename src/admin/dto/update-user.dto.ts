@@ -1,8 +1,8 @@
 import { PartialType, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional } from 'class-validator';
-import { CreateAdminUserDto } from './create-admin-user.dto';
+import { CreateUserDto } from './create-user.dto';
 
-export class UpdateAdminUserDto extends PartialType(CreateAdminUserDto) {
+export class UpdateUserDto extends PartialType(CreateUserDto) {
   @ApiPropertyOptional({ enum: ['active', 'inactive'], example: 'active' })
   @IsOptional()
   @IsIn(['active', 'inactive'])
