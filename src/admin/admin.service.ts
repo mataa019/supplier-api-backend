@@ -5,16 +5,15 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateAccountDto } from './dto/create-account.dto';
+import { UpdateAccountDto } from './dto/update-account.dto';
 
 @Injectable()
 export class AdminService {
 	constructor(private prisma: PrismaService) {}
 
-	async listUsers() {
+	async listAccounts() {
 		return this.prisma.user.findMany({
-			where: { NOT: { role: 'admin' } },
 			orderBy: { createdAt: 'desc' },
 			select: {
 				id: true,
@@ -28,9 +27,9 @@ export class AdminService {
 		});
 	}
 
-	async getUser(userId: string) {
-		const user = await this.prisma.user.findFirst({
-			where: { id: userId, NOT: { role: 'admin' } },
+	async getAccount(accountId: string) {
+		const account = await this.prisma.user.findFirst({
+			where: { id: accountId },
 			select: {
 				id: true,
 				email: true,
@@ -42,19 +41,19 @@ export class AdminService {
 			},
 		});
 
-		if (!user) {
-			throw new NotFoundException('User not found');
+		if (!account) {
+			throw new NotFoundException('Account not found');
 		}
 
-		return user;
+		return account;
 	}
 
-	async createUser(dto: CreateUserDto) {
-		const existingUser = await this.prisma.user.findUnique({
+	async createAccount(dto: CreateAccountDto) {
+		const existingAccount = await this.prisma.user.findUnique({
 			where: { email: dto.email },
 		});
 
-		if (existingUser) {
+		if (existingAccount) {
 			throw new ConflictException('Email already registered');
 		}
 
@@ -64,8 +63,8 @@ export class AdminService {
 			data: {
 				email: dto.email,
 				password: hashedPassword,
-				role: dto.role ?? 'supplier',
-				status: 'active',
+				role: dto.role,
+				status: dto.status ?? 'active',
 			},
 			select: {
 				id: true,
@@ -79,20 +78,20 @@ export class AdminService {
 		});
 	}
 
-	async updateUser(userId: string, dto: UpdateUserDto) {
-		const existingUser = await this.prisma.user.findFirst({
-			where: { id: userId, NOT: { role: 'admin' } },
+	async updateAccount(accountId: string, dto: UpdateAccountDto) {
+		const existingAccount = await this.prisma.user.findFirst({
+			where: { id: accountId },
 		});
 
-		if (!existingUser) {
-			throw new NotFoundException('User not found');
+		if (!existingAccount) {
+			throw new NotFoundException('Account not found');
 		}
 
-		if (dto.email && dto.email !== existingUser.email) {
-			const emailTaken = await this.prisma.user.findUnique({
+		if (dto.email && dto.email !== existingAccount.email) {
+			const emailTakenAccount = await this.prisma.user.findUnique({
 				where: { email: dto.email },
 			});
-			if (emailTaken) {
+			if (emailTakenAccount) {
 				throw new ConflictException('Email already registered');
 			}
 		}
@@ -121,7 +120,7 @@ export class AdminService {
 		}
 
 		return this.prisma.user.update({
-			where: { id: userId },
+			where: { id: accountId },
 			data,
 			select: {
 				id: true,
@@ -135,20 +134,20 @@ export class AdminService {
 		});
 	}
 
-	async toggleUserStatus(userId: string) {
-		const existingUser = await this.prisma.user.findFirst({
-			where: { id: userId, NOT: { role: 'admin' } },
+	async toggleAccountStatus(accountId: string) {
+		const existingAccount = await this.prisma.user.findFirst({
+			where: { id: accountId },
 			select: { id: true, status: true },
 		});
 
-		if (!existingUser) {
-			throw new NotFoundException('User not found');
+		if (!existingAccount) {
+			throw new NotFoundException('Account not found');
 		}
 
-		const nextStatus = existingUser.status === 'active' ? 'inactive' : 'active';
+		const nextStatus = existingAccount.status === 'active' ? 'inactive' : 'active';
 
 		return this.prisma.user.update({
-			where: { id: userId },
+			where: { id: accountId },
 			data: { status: nextStatus },
 			select: {
 				id: true,
@@ -162,20 +161,20 @@ export class AdminService {
 		});
 	}
 
-	async deleteUser(userId: string) {
-		const existingUser = await this.prisma.user.findFirst({
-			where: { id: userId, NOT: { role: 'admin' } },
+	async deleteAccount(accountId: string) {
+		const existingAccount = await this.prisma.user.findFirst({
+			where: { id: accountId },
 			select: { id: true },
 		});
 
-		if (!existingUser) {
-			throw new NotFoundException('User not found');
+		if (!existingAccount) {
+			throw new NotFoundException('Account not found');
 		}
 
 		await this.prisma.user.delete({
-			where: { id: userId },
+			where: { id: accountId },
 		});
 
-		return { message: 'User deleted successfully' };
+		return { message: 'Account deleted successfully' };
 	}
 }
