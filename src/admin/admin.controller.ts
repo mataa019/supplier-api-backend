@@ -29,41 +29,41 @@ export class AdminController {
 	constructor(private adminService: AdminService) {}
 
 	@Get()
-	@ApiAdminEndpoint('List admin users', 'Returns admin users list')
-	async listAdminUsers() {
-		return this.adminService.listAdminUsers();
+	@ApiAdminEndpoint('List users', 'Returns users list (excluding admins)')
+	async listUsers() {
+		return this.adminService.listUsers();
 	}
 
 	@Get(':userId')
-	@ApiGetByIdEndpoint('Get single admin user', 'admin user')
-	async getAdminUser(@Param('userId') userId: string) {
-		return this.adminService.getAdminUser(userId);
+	@ApiGetByIdEndpoint('Get single user', 'User details (excluding admins)')
+	async getUser(@Param('userId') userId: string) {
+		return this.adminService.getUser(userId);
 	}
 
 	@Post()
-	@ApiProtectedCreateEndpoint('Create admin user', 'Admin user created')
-	async createAdminUser(@Body() dto: CreateAdminUserDto) {
-		return this.adminService.createAdminUser(dto);
+	@ApiProtectedCreateEndpoint('Create user', 'User created')
+	async createUser(@Body() dto: CreateAdminUserDto) {
+		return this.adminService.createUser(dto);
 	}
 
 	@Patch(':userId')
-	@ApiAdminEndpoint('Update admin user', 'Admin user updated')
-	async updateAdminUser(
+	@ApiAdminEndpoint('Update user', 'User updated')
+	async updateUser(
 		@Param('userId') userId: string,
 		@Body() dto: UpdateAdminUserDto,
 	) {
-		return this.adminService.updateAdminUser(userId, dto);
+		return this.adminService.updateUser(userId, dto);
 	}
 
 	@Patch(':userId/status')
-	@ApiAdminEndpoint('Toggle admin user status', 'Admin user status toggled')
-	async toggleAdminUserStatus(@Param('userId') userId: string) {
-		return this.adminService.toggleAdminUserStatus(userId);
+	@ApiAdminEndpoint('Toggle user status', 'User status toggled')
+	async toggleUserStatus(@Param('userId') userId: string) {
+		return this.adminService.toggleUserStatus(userId);
 	}
 
 	@Delete(':userId')
-	@ApiAdminEndpoint('Delete admin user', 'Admin user deleted')
-	async deleteAdminUser(@Param('userId') userId: string) {
-		return this.adminService.deleteAdminUser(userId);
+	@ApiAdminEndpoint('Delete user', 'User deleted')
+	async deleteUser(@Param('userId') userId: string) {
+		return this.adminService.deleteUser(userId);
 	}
 }
