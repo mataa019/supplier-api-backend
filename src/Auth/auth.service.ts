@@ -106,6 +106,7 @@ export class AuthService {
     };
   }
 
+
   async registerAdmin(dto: AdminRegisterDto, ipAddress?: string) {
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
