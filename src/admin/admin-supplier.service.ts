@@ -10,6 +10,56 @@ import { UpdateSupplierStatusDto } from './dto/update-supplier-status.dto';
 export class AdminSupplierService {
   constructor(private prisma: PrismaService) {}
 
+  async listFormTemplates() {
+    return this.prisma.formTemplate.findMany({
+      where: { isActive: true },
+      orderBy: [{ name: 'asc' }, { version: 'desc' }],
+      select: {
+        id: true,
+        name: true,
+        version: true,
+        description: true,
+        fields: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async assignCategoryTemplate(categoryId: string, templateId: string) {
+    await this.ensureCategoryExists(categoryId);
+
+    const template = await this.prisma.formTemplate.findFirst({
+      where: { id: templateId, isActive: true },
+      select: { id: true },
+    });
+
+    if (!template) {
+      throw new NotFoundException('Form template not found');
+    }
+
+    return this.prisma.category.update({
+      where: { id: categoryId },
+      data: { templateId },
+      include: {
+        formTemplate: true,
+      },
+    });
+  }
+
+  async unassignCategoryTemplate(categoryId: string) {
+    await this.ensureCategoryExists(categoryId);
+
+    return this.prisma.category.update({
+      where: { id: categoryId },
+      data: { templateId: null },
+      include: {
+        formTemplate: true,
+      },
+    });
+  }
+
   async listAllSuppliers() {
     return this.prisma.supplier.findMany({
       orderBy: { createdAt: 'desc' },
@@ -137,6 +187,19 @@ export class AdminSupplierService {
     }
 
     return supplier;
+  }
+
+  private async ensureCategoryExists(categoryId: string) {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+
+    return category;
   }
   
 }

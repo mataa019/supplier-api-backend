@@ -1,5 +1,6 @@
 import {
 	Injectable,
+	ConflictException,
 	NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -8,6 +9,33 @@ import { UpdateOwnSupplierDto } from './dto/update-own-supplier.dto';
 @Injectable()
 export class SupplierService {
 	constructor(private prisma: PrismaService) {}
+
+	async getCategoryFormTemplate(categoryId: string) {
+		const category = await this.prisma.category.findUnique({
+			where: { id: categoryId },
+			include: {
+				formTemplate: true,
+			},
+		});
+
+		if (!category) {
+			throw new NotFoundException('Category not found');
+		}
+
+		if (!category.formTemplate) {
+			throw new NotFoundException('No form template assigned to this category');
+		}
+
+		if (!category.formTemplate.isActive) {
+			throw new ConflictException('Assigned form template is inactive');
+		}
+
+		return {
+			categoryId: category.id,
+			categoryName: category.name,
+			template: category.formTemplate,
+		};
+	}
 
 	async getOwnProfile(userId: string) {
 		const supplier = await this.prisma.supplier.findUnique({

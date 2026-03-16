@@ -211,13 +211,13 @@
 |--------|----------|------|-------------|
 | GET | `/categories` | Any | List active categories |
 | GET | `/categories/:categoryId` | Any | Get category details |
-| GET | `/categories/:categoryId/form-template` | supplier | Get online form template (JSON schema) |
+| GET | `/suppliers/categories/:categoryId/form-template` | supplier | Get online form template (JSON schema) |
 | POST | `/admin/categories` | admin | Create category |
 | PATCH | `/admin/categories/:categoryId` | admin | Update category |
 | DELETE | `/admin/categories/:categoryId` | admin | Delete category |
-| GET | `/admin/form-templates` | admin | List available predefined templates |
-| PATCH | `/admin/categories/:categoryId/template` | admin | Assign predefined template to category |
-| DELETE | `/admin/categories/:categoryId/template` | admin | Unassign template from category |
+| GET | `/admin/suppliers/form-templates` | admin/manager | List available predefined templates |
+| PATCH | `/admin/suppliers/categories/:categoryId/template` | admin | Assign predefined template to category |
+| DELETE | `/admin/suppliers/categories/:categoryId/template` | admin | Unassign template from category |
 
 ### Query: GET `/categories`
 ```
@@ -249,28 +249,32 @@
 }
 ```
 
-### Body: PATCH `/admin/categories/:categoryId/template`
+### Body: PATCH `/admin/suppliers/categories/:categoryId/template`
 ```json
 {
   "templateId": "string"
 }
 ```
 
-### Response: GET `/categories/:categoryId/form-template`
+### Response: GET `/suppliers/categories/:categoryId/form-template`
 ```json
 {
-  "templateId": "string",
-  "templateName": "string",
-  "version": "1.0.0",
-  "fields": [
-    {
-      "key": "businessNature",
-      "label": "Nature of Business",
-      "type": "text",
-      "required": true,
-      "options": []
-    }
-  ]
+  "categoryId": "string",
+  "categoryName": "string",
+  "template": {
+    "id": "string",
+    "name": "Supplier Onboarding Form",
+    "version": "1.0.0",
+    "fields": [
+      {
+        "key": "businessNature",
+        "label": "Nature of Business",
+        "type": "text",
+        "required": true,
+        "options": []
+      }
+    ]
+  }
 }
 ```
 

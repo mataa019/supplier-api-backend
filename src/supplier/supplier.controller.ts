@@ -2,6 +2,7 @@ import {
 	Body,
 	Controller,
 	Get,
+	Param,
 	Patch,
 	Request,
 	UseGuards,
@@ -21,6 +22,15 @@ import { ApiProtectedEndpoint } from '../common/decorators';
 @Roles('supplier')
 export class SupplierController {
 	constructor(private supplierService: SupplierService) {}
+
+	@Get('categories/:categoryId/form-template')
+	@ApiProtectedEndpoint(
+		'Get category form template',
+		'Returns the online form template assigned to a category',
+	)
+	async getCategoryFormTemplate(@Param('categoryId') categoryId: string) {
+		return this.supplierService.getCategoryFormTemplate(categoryId);
+	}
 
 	@Get('me')
 	@ApiProtectedEndpoint('Get own supplier profile', 'Returns own supplier profile')

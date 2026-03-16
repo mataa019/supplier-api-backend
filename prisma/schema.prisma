@@ -92,7 +92,7 @@ model Category {
   name             String
   description      String?
   applicationFee   Float
-  documentTemplate String
+  documentTemplate String?
   templateId       String?
   formTemplate     FormTemplate?   @relation(fields: [templateId], references: [id])
   status           CategoryStatus  @default(active)

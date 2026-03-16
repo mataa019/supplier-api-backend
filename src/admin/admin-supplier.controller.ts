@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -20,6 +21,37 @@ import { UpdateSupplierStatusDto } from './dto/update-supplier-status.dto';
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class AdminSupplierController {
   constructor(private adminSupplierService: AdminSupplierService) {}
+
+  @Get('form-templates')
+  @Roles('admin', 'manager')
+  @ApiAdminEndpoint('List available form templates', 'Returns active form templates')
+  async listFormTemplates() {
+    return this.adminSupplierService.listFormTemplates();
+  }
+
+  @Patch('categories/:categoryId/template')
+  @Roles('admin')
+  @ApiAdminEndpoint('Assign category form template', 'Category form template assigned')
+  async assignCategoryTemplate(
+    @Param('categoryId') categoryId: string,
+    @Body() body: { templateId?: string },
+  ) {
+    if (!body?.templateId) {
+      throw new BadRequestException('templateId is required');
+    }
+
+    return this.adminSupplierService.assignCategoryTemplate(
+      categoryId,
+      body.templateId,
+    );
+  }
+
+  @Delete('categories/:categoryId/template')
+  @Roles('admin')
+  @ApiAdminEndpoint('Unassign category form template', 'Category form template unassigned')
+  async unassignCategoryTemplate(@Param('categoryId') categoryId: string) {
+    return this.adminSupplierService.unassignCategoryTemplate(categoryId);
+  }
 
   @Get()
   @Roles('admin', 'manager')
