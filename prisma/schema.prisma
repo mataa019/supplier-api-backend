@@ -110,7 +110,6 @@ model Application {
   supplierId  String
   category    Category           @relation(fields: [categoryId], references: [id])
   categoryId  String
-  notes       String?
   status      ApplicationStatus  @default(draft)
   submittedAt DateTime?
   reviewedAt  DateTime?

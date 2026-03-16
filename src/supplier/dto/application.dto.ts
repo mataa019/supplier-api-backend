@@ -15,11 +15,6 @@ export class CreateApplicationDto {
   @IsString()
   @IsNotEmpty()
   categoryId: string;
-
-  @ApiPropertyOptional({ example: 'Applying for the 2026 intake' })
-  @IsOptional()
-  @IsString()
-  notes?: string;
 }
 
 export class UpdateApplicationDto extends PartialType(CreateApplicationDto) {}

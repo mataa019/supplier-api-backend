@@ -281,16 +281,14 @@ Binary file download (PDF or DOC/DOCX)
 ### Body: POST `/applications`
 ```json
 {
-  "categoryId": "string",
-  "notes": "string (optional)"
+  "categoryId": "string"
 }
 ```
 
 ### Body: PATCH `/applications/:applicationId`
 ```json
 {
-  "categoryId": "string (optional)",
-  "notes": "string (optional)"
+  "categoryId": "string (optional)"
 }
 ```
 
