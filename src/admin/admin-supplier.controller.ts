@@ -6,6 +6,8 @@ import {
   Param,
   Patch,
   Post,
+  Query,
+  Request,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -14,7 +16,13 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles, RolesGuard } from '../Auth/jwt/roles';
+import { JwtUser } from '../Auth/jwt/types';
 import { ApiAdminEndpoint, ApiGetByIdEndpoint } from '../common/decorators';
+import {
+  AdminApplicationsQueryDto,
+  RejectApplicationDto,
+  ReviewApplicationDto,
+} from '../common/dto/application.dto';
 import { AdminSupplierService } from './admin-supplier.service';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 import { UpdateSupplierStatusDto } from './dto/update-supplier-status.dto';
@@ -127,5 +135,56 @@ export class AdminSupplierController {
   @ApiAdminEndpoint('Delete supplier', 'Supplier deleted')
   async deleteSupplier(@Param('supplierId') supplierId: string) {
     return this.adminSupplierService.deleteSupplier(supplierId);
+  }
+}
+
+@ApiTags('Admin Applications')
+@ApiBearerAuth('JWT-auth')
+@Controller('admin/applications')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles('admin', 'manager')
+export class AdminApplicationController {
+  constructor(private adminSupplierService: AdminSupplierService) {}
+
+  @Get()
+  @ApiAdminEndpoint('List all applications', 'Returns all applications')
+  async listApplications(@Query() query: AdminApplicationsQueryDto) {
+    return this.adminSupplierService.listApplications(query);
+  }
+
+  @Get(':applicationId')
+  @ApiGetByIdEndpoint('Get single application', 'application')
+  async getApplication(@Param('applicationId') applicationId: string) {
+    return this.adminSupplierService.getApplication(applicationId);
+  }
+
+  @Patch(':applicationId/under-review')
+  @ApiAdminEndpoint('Mark under review', 'Application marked as under review')
+  async markUnderReview(
+    @Request() req: { user: JwtUser },
+    @Param('applicationId') applicationId: string,
+    @Body() dto: ReviewApplicationDto,
+  ) {
+    return this.adminSupplierService.markUnderReview(applicationId, req.user.id, dto);
+  }
+
+  @Patch(':applicationId/approve')
+  @ApiAdminEndpoint('Approve application', 'Application approved')
+  async approveApplication(
+    @Request() req: { user: JwtUser },
+    @Param('applicationId') applicationId: string,
+    @Body() dto: ReviewApplicationDto,
+  ) {
+    return this.adminSupplierService.approveApplication(applicationId, req.user.id, dto);
+  }
+
+  @Patch(':applicationId/reject')
+  @ApiAdminEndpoint('Reject application', 'Application rejected')
+  async rejectApplication(
+    @Request() req: { user: JwtUser },
+    @Param('applicationId') applicationId: string,
+    @Body() dto: RejectApplicationDto,
+  ) {
+    return this.adminSupplierService.rejectApplication(applicationId, req.user.id, dto);
   }
 }

@@ -4,6 +4,8 @@ import {
 	Get,
 	Param,
 	Patch,
+	Post,
+	Query,
 	Request,
 	Req,
 	Res,
@@ -16,6 +18,13 @@ import { JwtUser } from '../Auth/jwt/types';
 import { Roles, RolesGuard } from '../Auth/jwt/roles';
 import { UpdateOwnSupplierDto } from './dto/update-own-supplier.dto';
 import { ApiProtectedEndpoint } from '../common/decorators';
+import {
+	CreateApplicationDto,
+	SubmitApplicationDto,
+	SupplierApplicationsQueryDto,
+	UpdateApplicationDto,
+	WithdrawApplicationDto,
+} from '../common/dto/application.dto';
 
 @ApiTags('Suppliers')
 @ApiBearerAuth('JWT-auth')
@@ -67,5 +76,80 @@ export class SupplierController {
 		@Body() dto: UpdateOwnSupplierDto,
 	) {
 		return this.supplierService.updateOwnProfile(req.user.id, dto);
+	}
+}
+
+@ApiTags('Applications')
+@ApiBearerAuth('JWT-auth')
+@Controller('applications')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles('supplier')
+export class SupplierApplicationController {
+	constructor(private supplierService: SupplierService) {}
+
+	@Post()
+	@ApiProtectedEndpoint('Create application', 'Application draft created')
+	async createApplication(
+		@Request() req: { user: JwtUser },
+		@Body() dto: CreateApplicationDto,
+	) {
+		return this.supplierService.createApplication(req.user.id, dto);
+	}
+
+	@Get('me')
+	@ApiProtectedEndpoint('My applications', 'Returns supplier applications')
+	async listMyApplications(
+		@Request() req: { user: JwtUser },
+		@Query() query: SupplierApplicationsQueryDto,
+	) {
+		return this.supplierService.listMyApplications(req.user.id, query);
+	}
+
+	@Get(':applicationId/timeline')
+	@ApiProtectedEndpoint('Application timeline', 'Returns application status history')
+	async getApplicationTimeline(
+		@Request() req: { user: JwtUser },
+		@Param('applicationId') applicationId: string,
+	) {
+		return this.supplierService.getApplicationTimeline(req.user.id, applicationId);
+	}
+
+	@Post(':applicationId/submit')
+	@ApiProtectedEndpoint('Submit application', 'Application submitted')
+	async submitApplication(
+		@Request() req: { user: JwtUser },
+		@Param('applicationId') applicationId: string,
+		@Body() dto: SubmitApplicationDto,
+	) {
+		return this.supplierService.submitApplication(req.user.id, applicationId, dto);
+	}
+
+	@Post(':applicationId/withdraw')
+	@ApiProtectedEndpoint('Withdraw application', 'Application withdrawn')
+	async withdrawApplication(
+		@Request() req: { user: JwtUser },
+		@Param('applicationId') applicationId: string,
+		@Body() dto: WithdrawApplicationDto,
+	) {
+		return this.supplierService.withdrawApplication(req.user.id, applicationId, dto);
+	}
+
+	@Get(':applicationId')
+	@ApiProtectedEndpoint('Get application', 'Returns application details')
+	async getApplication(
+		@Request() req: { user: JwtUser },
+		@Param('applicationId') applicationId: string,
+	) {
+		return this.supplierService.getApplication(req.user.id, applicationId);
+	}
+
+	@Patch(':applicationId')
+	@ApiProtectedEndpoint('Update application', 'Application draft updated')
+	async updateApplication(
+		@Request() req: { user: JwtUser },
+		@Param('applicationId') applicationId: string,
+		@Body() dto: UpdateApplicationDto,
+	) {
+		return this.supplierService.updateApplication(req.user.id, applicationId, dto);
 	}
 }
