@@ -115,7 +115,7 @@ export class AdminService {
 			data.status = dto.status;
 		}
 
-		if (dto.role) {
+		if (dto.role && (dto.role === 'supplier' || dto.role === 'manager')) {
 			data.role = dto.role;
 		}
 
