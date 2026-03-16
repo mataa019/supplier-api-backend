@@ -16,6 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles, RolesGuard } from '../Auth/jwt/roles';
 import { ApiAdminEndpoint, ApiGetByIdEndpoint } from '../common/decorators';
 import { AdminSupplierService } from './admin-supplier.service';
+import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 import { UpdateSupplierStatusDto } from './dto/update-supplier-status.dto';
 
 @ApiTags('Admin Suppliers')
@@ -43,15 +44,7 @@ export class AdminSupplierController {
   @Roles('admin')
   @ApiAdminEndpoint('Create category', 'Category created')
   async createCategory(
-    @Body()
-    body: {
-      name?: string;
-      description?: string;
-      applicationFee?: number;
-      requirements: string;
-      status?: 'active' | 'inactive';
-      documentTemplate?: string;
-    },
+    @Body() body: CreateCategoryDto,
   ) {
     return this.adminSupplierService.createCategory(body);
   }
@@ -61,14 +54,7 @@ export class AdminSupplierController {
   @ApiAdminEndpoint('Update category', 'Category updated')
   async updateCategory(
     @Param('categoryId') categoryId: string,
-    @Body()
-    body: {
-      name?: string;
-      description?: string;
-      applicationFee?: number;
-      status?: 'active' | 'inactive';
-      documentTemplate?: string | null;
-    },
+    @Body() body: UpdateCategoryDto,
   ) {
     return this.adminSupplierService.updateCategory(categoryId, body);
   }
