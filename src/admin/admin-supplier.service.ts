@@ -7,7 +7,7 @@ import {
 import { CategoryStatus } from '@prisma/client';
 import { access, mkdir, unlink, writeFile } from 'fs/promises';
 import { randomUUID } from 'crypto';
-import { basename, extname, isAbsolute, join, relative } from 'path';
+import { extname, isAbsolute, join, relative } from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateSupplierStatusDto } from './dto/update-supplier-status.dto';
 
@@ -145,7 +145,7 @@ export class AdminSupplierService {
 
   async uploadCategoryTemplateDocument(
     categoryId: string,
-    file: Express.Multer.File,
+    file: any,
   ) {
     if (!file) {
       throw new BadRequestException('file is required');
@@ -353,7 +353,7 @@ export class AdminSupplierService {
     return category;
   }
 
-  private assertValidTemplateFile(file: Express.Multer.File) {
+  private assertValidTemplateFile(file: any) {
     const allowedMimes = [
       'application/pdf',
       'application/msword',
@@ -365,7 +365,7 @@ export class AdminSupplierService {
     }
   }
 
-  private resolveFileExtension(file: Express.Multer.File) {
+  private resolveFileExtension(file: any) {
     if (file.mimetype === 'application/pdf') {
       return '.pdf';
     }

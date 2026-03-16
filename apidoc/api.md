@@ -211,17 +211,14 @@
 |--------|----------|------|-------------|
 | GET | `/categories` | Any | List active categories |
 | GET | `/categories/:categoryId` | Any | Get category details |
-| GET | `/suppliers/categories/:categoryId/form-template` | supplier | Get online form template (JSON schema) |
+| GET | `/suppliers/categories/:categoryId/template` | supplier | Download category template document |
 | GET | `/admin/suppliers/categories` | admin/manager | List categories |
 | GET | `/admin/suppliers/categories/:categoryId` | admin/manager | Get category details |
 | POST | `/admin/suppliers/categories` | admin | Create category |
 | PATCH | `/admin/suppliers/categories/:categoryId` | admin | Update category |
 | DELETE | `/admin/suppliers/categories/:categoryId` | admin | Delete category |
-| POST | `/admin/suppliers/form-templates` | admin | Create a form template and optionally assign it to a category |
-| GET | `/admin/suppliers/form-templates` | admin/manager | List available predefined templates |
-| GET | `/admin/suppliers/form-templates/library` | admin/manager | List form templates from code library |
-| PATCH | `/admin/suppliers/categories/:categoryId/template` | admin | Assign predefined template to category |
-| DELETE | `/admin/suppliers/categories/:categoryId/template` | admin | Unassign template from category |
+| POST | `/admin/suppliers/categories/:categoryId/template` | admin | Upload and attach template document |
+| DELETE | `/admin/suppliers/categories/:categoryId/template` | admin | Remove attached template document |
 
 ### Query: GET `/categories`
 ```
@@ -237,9 +234,7 @@
   "name": "string",
   "description": "string",
   "applicationFee": 2500,
-  "status": "active | inactive",
-  "templateId": "string (optional)",
-  "documentTemplate": "string (optional)"
+  "status": "active | inactive"
 }
 ```
 
@@ -250,62 +245,20 @@
   "description": "string (optional)",
   "applicationFee": "number (optional)",
   "status": "active | inactive (optional)",
-  "templateId": "string | null (optional)",
   "documentTemplate": "string | null (optional)"
 }
 ```
 
-### Body: POST `/admin/suppliers/form-templates`
-```json
-{
-  "templateCode": "supplier_onboarding_v1 (optional)",
-  "name": "Supplier Onboarding Form",
-  "version": "1.0.0",
-  "description": "Default supplier onboarding form",
-  "categoryId": "string (optional)",
-  "fields": [
-    {
-      "key": "businessNature",
-      "label": "Nature of Business",
-      "type": "text",
-      "required": true,
-      "placeholder": "Enter nature of business"
-    },
-    {
-      "key": "companyType",
-      "label": "Company Type",
-      "type": "select",
-      "required": true,
-      "options": ["Local", "International", "Joint Venture"]
-    }
-  ]
-}
+### Body: POST `/admin/suppliers/categories/:categoryId/template`
+```
+Content-Type: multipart/form-data
+form-data: file (PDF or DOC/DOCX)
 ```
 
-> Note: `templateCode` can load a predefined field schema from `src/admin/form-template.data.ts`.
-
-### Body: PATCH `/admin/suppliers/categories/:categoryId/template`
-```json
-{
-  "templateId": "string"
-}
+### Response: GET `/suppliers/categories/:categoryId/template`
 ```
-
-### Response: GET `/suppliers/categories/:categoryId/form-template`
-```json
-{
-  "categoryId": "string",
-  "categoryName": "string",
-  "template": {
-    "id": "string",
-    "name": "Supplier Onboarding Form",
-    "version": "1.0.0",
-    "fields": [
-      {
-        "key": "businessNature",
-        "label": "Nature of Business",
-        "type": "text",
-        "required": true,
+Binary file download (PDF or DOC/DOCX)
+```
         "options": []
       }
     ]

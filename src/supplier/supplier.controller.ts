@@ -8,7 +8,7 @@ import {
 	Res,
 	UseGuards,
 } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SupplierService } from './supplier.service';
@@ -32,7 +32,7 @@ export class SupplierController {
 	)
 	async downloadCategoryTemplate(
 		@Param('categoryId') categoryId: string,
-		@Res() res: Response,
+		@Res() res: any,
 	) {
 		const file = await this.supplierService.getCategoryTemplateDocument(categoryId);
 		return res.download(file.absolutePath, file.fileName);

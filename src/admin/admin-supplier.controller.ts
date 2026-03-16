@@ -85,7 +85,7 @@ export class AdminSupplierController {
   @ApiAdminEndpoint('Upload category template document', 'Template document uploaded and attached to category')
   async uploadCategoryTemplate(
     @Param('categoryId') categoryId: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: any,
   ) {
     return this.adminSupplierService.uploadCategoryTemplateDocument(categoryId, file);
   }
