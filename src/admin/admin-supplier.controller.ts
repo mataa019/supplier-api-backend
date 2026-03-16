@@ -6,6 +6,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -21,6 +22,109 @@ import { UpdateSupplierStatusDto } from './dto/update-supplier-status.dto';
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class AdminSupplierController {
   constructor(private adminSupplierService: AdminSupplierService) {}
+
+  @Get('categories')
+  @Roles('admin', 'manager')
+  @ApiAdminEndpoint('List categories', 'Returns all categories with assigned templates')
+  async listCategories() {
+    return this.adminSupplierService.listCategories();
+  }
+
+  @Get('categories/:categoryId')
+  @Roles('admin', 'manager')
+  @ApiGetByIdEndpoint('Get category', 'Category details')
+  async getCategory(@Param('categoryId') categoryId: string) {
+    return this.adminSupplierService.getCategoryById(categoryId);
+  }
+
+  @Post('categories')
+  @Roles('admin')
+  @ApiAdminEndpoint('Create category', 'Category created')
+  async createCategory(
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      applicationFee?: number;
+      status?: 'active' | 'inactive';
+      templateId?: string;
+      documentTemplate?: string;
+    },
+  ) {
+    return this.adminSupplierService.createCategory(body);
+  }
+
+  @Patch('categories/:categoryId')
+  @Roles('admin')
+  @ApiAdminEndpoint('Update category', 'Category updated')
+  async updateCategory(
+    @Param('categoryId') categoryId: string,
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      applicationFee?: number;
+      status?: 'active' | 'inactive';
+      templateId?: string | null;
+      documentTemplate?: string | null;
+    },
+  ) {
+    return this.adminSupplierService.updateCategory(categoryId, body);
+  }
+
+  @Delete('categories/:categoryId')
+  @Roles('admin')
+  @ApiAdminEndpoint('Delete category', 'Category deleted')
+  async deleteCategory(@Param('categoryId') categoryId: string) {
+    return this.adminSupplierService.deleteCategory(categoryId);
+  }
+
+  @Post('form-templates')
+  @Roles('admin')
+  @ApiAdminEndpoint(
+    'Create form template',
+    'Creates a form template and optionally assigns it to a category',
+  )
+  async createFormTemplate(
+    @Body()
+    body: {
+      name?: string;
+      version?: string;
+      description?: string;
+      categoryId?: string;
+      fields?: Array<{
+        key: string;
+        label: string;
+        type:
+          | 'text'
+          | 'textarea'
+          | 'number'
+          | 'email'
+          | 'phone'
+          | 'date'
+          | 'select'
+          | 'radio'
+          | 'checkbox'
+          | 'boolean';
+        required?: boolean;
+        placeholder?: string;
+        helpText?: string;
+        options?: string[];
+      }>;
+    },
+  ) {
+    return this.adminSupplierService.createFormTemplate(body);
+  }
+
+  @Get('form-templates/library')
+  @Roles('admin', 'manager')
+  @ApiAdminEndpoint(
+    'List template library',
+    'Returns reusable template schemas from code file',
+  )
+  async listTemplateLibrary() {
+    return this.adminSupplierService.listTemplateLibrary();
+  }
 
   @Get('form-templates')
   @Roles('admin', 'manager')

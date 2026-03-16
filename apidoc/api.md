@@ -215,6 +215,7 @@
 | POST | `/admin/categories` | admin | Create category |
 | PATCH | `/admin/categories/:categoryId` | admin | Update category |
 | DELETE | `/admin/categories/:categoryId` | admin | Delete category |
+| POST | `/admin/suppliers/form-templates` | admin | Create a form template and optionally assign it to a category |
 | GET | `/admin/suppliers/form-templates` | admin/manager | List available predefined templates |
 | PATCH | `/admin/suppliers/categories/:categoryId/template` | admin | Assign predefined template to category |
 | DELETE | `/admin/suppliers/categories/:categoryId/template` | admin | Unassign template from category |
@@ -246,6 +247,32 @@
   "applicationFee": "number (optional)",
   "currency": "string (optional)",
   "status": "string (optional)"
+}
+```
+
+### Body: POST `/admin/suppliers/form-templates`
+```json
+{
+  "name": "Supplier Onboarding Form",
+  "version": "1.0.0",
+  "description": "Default supplier onboarding form",
+  "categoryId": "string (optional)",
+  "fields": [
+    {
+      "key": "businessNature",
+      "label": "Nature of Business",
+      "type": "text",
+      "required": true,
+      "placeholder": "Enter nature of business"
+    },
+    {
+      "key": "companyType",
+      "label": "Company Type",
+      "type": "select",
+      "required": true,
+      "options": ["Local", "International", "Joint Venture"]
+    }
+  ]
 }
 ```
 
