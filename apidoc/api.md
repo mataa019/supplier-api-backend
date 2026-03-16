@@ -259,12 +259,6 @@ form-data: file (PDF or DOC/DOCX)
 ```
 Binary file download (PDF or DOC/DOCX)
 ```
-        "options": []
-      }
-    ]
-  }
-}
-```
 
 ---
 
@@ -289,10 +283,6 @@ Binary file download (PDF or DOC/DOCX)
 ```json
 {
   "categoryId": "string",
-  "templateId": "string",
-  "responses": {
-    "businessNature": "string"
-  },
   "notes": "string (optional)"
 }
 ```
@@ -301,9 +291,6 @@ Binary file download (PDF or DOC/DOCX)
 ```json
 {
   "categoryId": "string (optional)",
-  "responses": {
-    "businessNature": "string (optional)"
-  },
   "notes": "string (optional)"
 }
 ```
