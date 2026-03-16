@@ -211,14 +211,13 @@
 |--------|----------|------|-------------|
 | GET | `/categories` | Any | List active categories |
 | GET | `/categories/:categoryId` | Any | Get category details |
-| GET | `/suppliers/categories/:categoryId/template` | supplier | Download category template document |
-| GET | `/admin/suppliers/categories` | admin/manager | List categories |
-| GET | `/admin/suppliers/categories/:categoryId` | admin/manager | Get category details |
-| POST | `/admin/suppliers/categories` | admin | Create category |
-| PATCH | `/admin/suppliers/categories/:categoryId` | admin | Update category |
-| DELETE | `/admin/suppliers/categories/:categoryId` | admin | Delete category |
-| POST | `/admin/suppliers/categories/:categoryId/template` | admin | Upload and attach template document |
-| DELETE | `/admin/suppliers/categories/:categoryId/template` | admin | Remove attached template document |
+| GET | `/suppliers/categories/:categoryId/form-template` | supplier | Get online form template (JSON schema) |
+| POST | `/admin/categories` | admin | Create category |
+| PATCH | `/admin/categories/:categoryId` | admin | Update category |
+| DELETE | `/admin/categories/:categoryId` | admin | Delete category |
+| GET | `/admin/suppliers/form-templates` | admin/manager | List available predefined templates |
+| PATCH | `/admin/suppliers/categories/:categoryId/template` | admin | Assign predefined template to category |
+| DELETE | `/admin/suppliers/categories/:categoryId/template` | admin | Unassign template from category |
 
 ### Query: GET `/categories`
 ```

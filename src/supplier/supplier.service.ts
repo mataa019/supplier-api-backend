@@ -11,6 +11,48 @@ import { UpdateOwnSupplierDto } from './dto/update-own-supplier.dto';
 export class SupplierService {
 	constructor(private prisma: PrismaService) {}
 
+	async listCategories() {
+		return this.prisma.category.findMany({
+			where: { status: 'active' },
+			select: {
+				id: true,
+				name: true,
+				description: true,
+				applicationFee: true,
+				Requirements: true,
+				status: true,
+				createdAt: true,
+				documentTemplate: true,
+			},
+			orderBy: { createdAt: 'desc' },
+		});
+	}
+
+	async getCategoryById(categoryId: string) {
+		const category = await this.prisma.category.findUnique({
+			where: { id: categoryId },
+			select: {
+				id: true,
+				name: true,
+				description: true,
+				applicationFee: true,
+				Requirements: true,
+				status: true,
+				createdAt: true,
+				documentTemplate: true,
+			},
+		});
+
+		if (!category) {
+			throw new NotFoundException('Category not found');
+		}
+
+		return {
+			...category,
+			hasTemplateDocument: !!category.documentTemplate,
+		};
+	}
+
 	async getCategoryTemplateDocument(categoryId: string) {
 		const category = await this.prisma.category.findUnique({
 			where: { id: categoryId },

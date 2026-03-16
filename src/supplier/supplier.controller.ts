@@ -25,6 +25,18 @@ import { ApiProtectedEndpoint } from '../common/decorators';
 export class SupplierController {
 	constructor(private supplierService: SupplierService) {}
 
+	@Get('categories')
+	@ApiProtectedEndpoint('List categories', 'Returns all active categories')
+	async listCategories() {
+		return this.supplierService.listCategories();
+	}
+
+	@Get('categories/:categoryId')
+	@ApiProtectedEndpoint('Get category details', 'Returns full details of a category')
+	async getCategoryById(@Param('categoryId') categoryId: string) {
+		return this.supplierService.getCategoryById(categoryId);
+	}
+
 	@Get('categories/:categoryId/template')
 	@ApiProtectedEndpoint(
 		'Download category template',
