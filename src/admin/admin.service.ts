@@ -12,6 +12,14 @@ import { UpdateAccountDto } from './dto/update-account.dto';
 export class AdminService {
 	constructor(private prisma: PrismaService) {}
 
+	getRoleOptions() {
+		return {
+			allRoles: ['supplier', 'manager', 'admin'] as const,
+			assignableRoles: ['supplier', 'manager'] as const,
+			nonAssignableRoles: ['admin'] as const,
+		};
+	}
+
 	async listAccounts() {
 		return this.prisma.user.findMany({
 			orderBy: { createdAt: 'desc' },
