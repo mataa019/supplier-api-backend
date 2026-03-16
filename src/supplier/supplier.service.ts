@@ -28,7 +28,7 @@ export class SupplierService {
 		});
 	}
 
-	async getCategoryById(categoryId: string) {
+	async getCategoryById(categoryId: string, baseUrl: string = '') {
 		const category = await this.prisma.category.findUnique({
 			where: { id: categoryId },
 			select: {
@@ -51,7 +51,7 @@ export class SupplierService {
 			...category,
 			hasTemplateDocument: !!category.documentTemplate,
 			templateDownloadUrl: category.documentTemplate
-				? `/suppliers/categories/${category.id}/template`
+				? `${baseUrl}/suppliers/categories/${category.id}/template`
 				: null,
 		};
 	}

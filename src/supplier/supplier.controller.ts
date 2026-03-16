@@ -5,6 +5,7 @@ import {
 	Param,
 	Patch,
 	Request,
+	Req,
 	Res,
 	UseGuards,
 } from '@nestjs/common';
@@ -33,8 +34,12 @@ export class SupplierController {
 
 	@Get('categories/:categoryId')
 	@ApiProtectedEndpoint('Get category details', 'Returns full details of a category')
-	async getCategoryById(@Param('categoryId') categoryId: string) {
-		return this.supplierService.getCategoryById(categoryId);
+	async getCategoryById(
+		@Param('categoryId') categoryId: string,
+		@Req() req: any,
+	) {
+		const baseUrl = `${req.protocol}://${req.get('host')}`;
+		return this.supplierService.getCategoryById(categoryId, baseUrl);
 	}
 
 	@Get('categories/:categoryId/template')
