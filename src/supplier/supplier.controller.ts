@@ -9,7 +9,6 @@ import {
 	Res,
 	UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SupplierService } from './supplier.service';
