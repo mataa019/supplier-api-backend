@@ -9,6 +9,7 @@ import { access, mkdir, unlink, writeFile } from 'fs/promises';
 import { randomUUID } from 'crypto';
 import { extname, isAbsolute, join, relative } from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 import { UpdateSupplierStatusDto } from './dto/update-supplier-status.dto';
 
 @Injectable()
@@ -51,14 +52,7 @@ export class AdminSupplierService {
     return category;
   }
 
-  async createCategory(dto: {
-    name?: string;
-    requirements: string;
-    description?: string;
-    applicationFee?: number;
-    status?: 'active' | 'inactive';
-    documentTemplate?: string;
-  }) {
+  async createCategory(dto: CreateCategoryDto) {
     if (!dto?.name?.trim()) {
       throw new BadRequestException('name is required');
     }
@@ -85,13 +79,7 @@ export class AdminSupplierService {
 
   async updateCategory(
     categoryId: string,
-    dto: {
-      name?: string;
-      description?: string;
-      applicationFee?: number;
-      status?: 'active' | 'inactive';
-      documentTemplate?: string | null;
-    },
+    dto: UpdateCategoryDto,
   ) {
     await this.ensureCategoryExists(categoryId);
 
@@ -112,6 +100,7 @@ export class AdminSupplierService {
             : (dto.description?.trim() || null),
         applicationFee: dto.applicationFee,
         status: dto.status ? (dto.status as CategoryStatus) : undefined,
+        Requirements: dto.requirements?.trim(),
         documentTemplate:
           dto.documentTemplate === undefined
             ? undefined
