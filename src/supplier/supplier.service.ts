@@ -1,8 +1,9 @@
 import {
 	Injectable,
-	ConflictException,
 	NotFoundException,
 } from '@nestjs/common';
+import { access } from 'fs/promises';
+import { basename, isAbsolute, join } from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateOwnSupplierDto } from './dto/update-own-supplier.dto';
 
@@ -10,11 +11,13 @@ import { UpdateOwnSupplierDto } from './dto/update-own-supplier.dto';
 export class SupplierService {
 	constructor(private prisma: PrismaService) {}
 
-	async getCategoryFormTemplate(categoryId: string) {
+	async getCategoryTemplateDocument(categoryId: string) {
 		const category = await this.prisma.category.findUnique({
 			where: { id: categoryId },
-			include: {
-				formTemplate: true,
+			select: {
+				id: true,
+				name: true,
+				documentTemplate: true,
 			},
 		});
 
@@ -22,18 +25,25 @@ export class SupplierService {
 			throw new NotFoundException('Category not found');
 		}
 
-		if (!category.formTemplate) {
-			throw new NotFoundException('No form template assigned to this category');
+		if (!category.documentTemplate) {
+			throw new NotFoundException('No template document attached to this category');
 		}
 
-		if (!category.formTemplate.isActive) {
-			throw new ConflictException('Assigned form template is inactive');
+		const absolutePath = isAbsolute(category.documentTemplate)
+			? category.documentTemplate
+			: join(process.cwd(), category.documentTemplate);
+
+		try {
+			await access(absolutePath);
+		} catch {
+			throw new NotFoundException('Template document not found on server');
 		}
 
 		return {
 			categoryId: category.id,
 			categoryName: category.name,
-			template: category.formTemplate,
+			absolutePath,
+			fileName: basename(absolutePath),
 		};
 	}
 

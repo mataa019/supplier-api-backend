@@ -1,18 +1,15 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
-  ConflictException,
 } from '@nestjs/common';
-import { CategoryStatus, Prisma } from '@prisma/client';
+import { CategoryStatus } from '@prisma/client';
+import { access, mkdir, unlink, writeFile } from 'fs/promises';
+import { randomUUID } from 'crypto';
+import { basename, extname, isAbsolute, join, relative } from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateSupplierStatusDto } from './dto/update-supplier-status.dto';
-import {
-  CreateFormTemplateInput,
-  FORM_TEMPLATE_LIBRARY,
-  getLibraryTemplateByCode,
-  TemplateFieldType,
-} from './form-template.data';
 
 @Injectable()
 export class AdminSupplierService {
@@ -21,15 +18,14 @@ export class AdminSupplierService {
   async listCategories() {
     return this.prisma.category.findMany({
       orderBy: { createdAt: 'desc' },
-      include: {
-        formTemplate: {
-          select: {
-            id: true,
-            name: true,
-            version: true,
-            isActive: true,
-          },
-        },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        applicationFee: true,
+        status: true,
+        documentTemplate: true,
+        createdAt: true,
       },
     });
   }
@@ -37,16 +33,14 @@ export class AdminSupplierService {
   async getCategoryById(categoryId: string) {
     const category = await this.prisma.category.findUnique({
       where: { id: categoryId },
-      include: {
-        formTemplate: {
-          select: {
-            id: true,
-            name: true,
-            version: true,
-            description: true,
-            isActive: true,
-          },
-        },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        applicationFee: true,
+        status: true,
+        documentTemplate: true,
+        createdAt: true,
       },
     });
 
@@ -62,7 +56,6 @@ export class AdminSupplierService {
     description?: string;
     applicationFee?: number;
     status?: 'active' | 'inactive';
-    templateId?: string;
     documentTemplate?: string;
   }) {
     if (!dto?.name?.trim()) {
@@ -77,28 +70,13 @@ export class AdminSupplierService {
       throw new BadRequestException('applicationFee cannot be negative');
     }
 
-    if (dto.templateId) {
-      await this.ensureTemplateExists(dto.templateId);
-    }
-
     return this.prisma.category.create({
       data: {
         name: dto.name.trim(),
         description: dto.description?.trim() || null,
         applicationFee: dto.applicationFee,
         status: dto.status ? (dto.status as CategoryStatus) : undefined,
-        templateId: dto.templateId || null,
         documentTemplate: dto.documentTemplate?.trim() || null,
-      },
-      include: {
-        formTemplate: {
-          select: {
-            id: true,
-            name: true,
-            version: true,
-            isActive: true,
-          },
-        },
       },
     });
   }
@@ -110,15 +88,10 @@ export class AdminSupplierService {
       description?: string;
       applicationFee?: number;
       status?: 'active' | 'inactive';
-      templateId?: string | null;
       documentTemplate?: string | null;
     },
   ) {
     await this.ensureCategoryExists(categoryId);
-
-    if (dto.templateId) {
-      await this.ensureTemplateExists(dto.templateId);
-    }
 
     if (
       typeof dto.applicationFee === 'number' &&
@@ -137,28 +110,16 @@ export class AdminSupplierService {
             : (dto.description?.trim() || null),
         applicationFee: dto.applicationFee,
         status: dto.status ? (dto.status as CategoryStatus) : undefined,
-        templateId:
-          dto.templateId === undefined ? undefined : dto.templateId,
         documentTemplate:
           dto.documentTemplate === undefined
             ? undefined
             : (dto.documentTemplate?.trim() || null),
       },
-      include: {
-        formTemplate: {
-          select: {
-            id: true,
-            name: true,
-            version: true,
-            isActive: true,
-          },
-        },
-      },
     });
   }
 
   async deleteCategory(categoryId: string) {
-    await this.ensureCategoryExists(categoryId);
+    const category = await this.ensureCategoryExists(categoryId);
 
     const applicationCount = await this.prisma.application.count({
       where: { categoryId },
@@ -170,6 +131,11 @@ export class AdminSupplierService {
       );
     }
 
+    if (category.documentTemplate) {
+      const oldPath = this.toAbsolutePath(category.documentTemplate);
+      await this.deleteFileIfExists(oldPath);
+    }
+
     await this.prisma.category.delete({
       where: { id: categoryId },
     });
@@ -177,156 +143,69 @@ export class AdminSupplierService {
     return { message: 'Category deleted successfully' };
   }
 
-  async createFormTemplate(dto: CreateFormTemplateInput) {
-    const libraryTemplate = getLibraryTemplateByCode(dto.templateCode);
-
-    if (dto.templateCode && !libraryTemplate) {
-      throw new BadRequestException('templateCode is invalid');
+  async uploadCategoryTemplateDocument(
+    categoryId: string,
+    file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('file is required');
     }
 
-    const fieldsInput =
-      Array.isArray(dto.fields) && dto.fields.length > 0
-        ? dto.fields
-        : libraryTemplate?.fields;
+    this.assertValidTemplateFile(file);
 
-    const name = dto.name?.trim() || libraryTemplate?.name;
-    const version = dto.version?.trim() || libraryTemplate?.version || '1.0.0';
-    const description = dto.description?.trim() || libraryTemplate?.description || null;
+    const category = await this.ensureCategoryExists(categoryId);
 
-    this.validateTemplatePayload({
-      ...dto,
-      name,
-      fields: fieldsInput,
-    });
+    const uploadsDir = join(process.cwd(), 'uploads', 'category-templates');
+    await mkdir(uploadsDir, { recursive: true });
 
-    const fields = fieldsInput!.map((field) => ({
-      key: field.key.trim(),
-      label: field.label.trim(),
-      type: field.type,
-      required: field.required ?? false,
-      placeholder: field.placeholder?.trim() || null,
-      helpText: field.helpText?.trim() || null,
-      options: Array.isArray(field.options)
-        ? field.options
-            .map((option) => option?.trim())
-            .filter((option): option is string => Boolean(option))
-        : [],
-    }));
+    const fileExt = this.resolveFileExtension(file);
+    const uniqueName = `${categoryId}-${Date.now()}-${randomUUID()}${fileExt}`;
+    const absolutePath = join(uploadsDir, uniqueName);
 
-    if (dto.categoryId) {
-      await this.ensureCategoryExists(dto.categoryId);
-    }
+    await writeFile(absolutePath, file.buffer);
 
-    try {
-      return await this.prisma.$transaction(async (tx) => {
-        const template = await tx.formTemplate.create({
-          data: {
-            name,
-            version,
-            description,
-            fields: fields as Prisma.InputJsonValue,
-          },
-        });
+    const relativePath = relative(process.cwd(), absolutePath).replace(/\\/g, '/');
 
-        if (dto.categoryId) {
-          await tx.category.update({
-            where: { id: dto.categoryId },
-            data: { templateId: template.id },
-          });
-        }
-
-        return tx.formTemplate.findUnique({
-          where: { id: template.id },
-          select: {
-            id: true,
-            name: true,
-            version: true,
-            description: true,
-            fields: true,
-            isActive: true,
-            createdAt: true,
-            updatedAt: true,
-            categories: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        });
-      });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new ConflictException(
-          'A form template with this name and version already exists',
-        );
-      }
-
-      throw error;
-    }
-  }
-
-  async listFormTemplates() {
-    return this.prisma.formTemplate.findMany({
-      where: { isActive: true },
-      orderBy: [{ name: 'asc' }, { version: 'desc' }],
+    const updated = await this.prisma.category.update({
+      where: { id: categoryId },
+      data: { documentTemplate: relativePath },
       select: {
         id: true,
         name: true,
-        version: true,
-        description: true,
-        fields: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        categories: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        documentTemplate: true,
       },
     });
-  }
 
-  async listTemplateLibrary() {
-    return FORM_TEMPLATE_LIBRARY;
-  }
-
-  async assignCategoryTemplate(categoryId: string, templateId: string) {
-    await this.ensureCategoryExists(categoryId);
-
-    const template = await this.prisma.formTemplate.findFirst({
-      where: { id: templateId, isActive: true },
-      select: { id: true },
-    });
-
-    if (!template) {
-      throw new NotFoundException('Form template not found');
+    if (category.documentTemplate) {
+      const oldPath = this.toAbsolutePath(category.documentTemplate);
+      if (oldPath !== absolutePath) {
+        await this.deleteFileIfExists(oldPath);
+      }
     }
 
-    return this.prisma.category.update({
-      where: { id: categoryId },
-      data: { templateId },
-      include: {
-        formTemplate: true,
-      },
-    });
+    return {
+      message: 'Template document uploaded successfully',
+      category: updated,
+    };
   }
 
-  async unassignCategoryTemplate(categoryId: string) {
-    await this.ensureCategoryExists(categoryId);
+  async removeCategoryTemplateDocument(categoryId: string) {
+    const category = await this.ensureCategoryExists(categoryId);
 
-    return this.prisma.category.update({
+    if (!category.documentTemplate) {
+      throw new NotFoundException('No template document attached to this category');
+    }
+
+    const oldPath = this.toAbsolutePath(category.documentTemplate);
+
+    await this.prisma.category.update({
       where: { id: categoryId },
-      data: { templateId: null },
-      include: {
-        formTemplate: true,
-      },
+      data: { documentTemplate: null },
     });
+
+    await this.deleteFileIfExists(oldPath);
+
+    return { message: 'Template document removed successfully' };
   }
 
   async listAllSuppliers() {
@@ -461,7 +340,10 @@ export class AdminSupplierService {
   private async ensureCategoryExists(categoryId: string) {
     const category = await this.prisma.category.findUnique({
       where: { id: categoryId },
-      select: { id: true },
+      select: {
+        id: true,
+        documentTemplate: true,
+      },
     });
 
     if (!category) {
@@ -471,75 +353,52 @@ export class AdminSupplierService {
     return category;
   }
 
-  private async ensureTemplateExists(templateId: string) {
-    const template = await this.prisma.formTemplate.findUnique({
-      where: { id: templateId },
-      select: { id: true },
-    });
-
-    if (!template) {
-      throw new NotFoundException('Form template not found');
-    }
-
-    return template;
-  }
-
-  private validateTemplatePayload(dto: CreateFormTemplateInput) {
-    if (!dto?.name?.trim()) {
-      throw new BadRequestException('name is required');
-    }
-
-    if (!Array.isArray(dto.fields) || dto.fields.length === 0) {
-      throw new BadRequestException('fields must contain at least one field');
-    }
-
-    const allowedTypes: TemplateFieldType[] = [
-      'text',
-      'textarea',
-      'number',
-      'email',
-      'phone',
-      'date',
-      'select',
-      'radio',
-      'checkbox',
-      'boolean',
+  private assertValidTemplateFile(file: Express.Multer.File) {
+    const allowedMimes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
 
-    const seenKeys = new Set<string>();
-
-    for (const field of dto.fields) {
-      if (!field?.key?.trim()) {
-        throw new BadRequestException('each field must have a key');
-      }
-
-      if (!field?.label?.trim()) {
-        throw new BadRequestException('each field must have a label');
-      }
-
-      if (!allowedTypes.includes(field.type)) {
-        throw new BadRequestException(
-          `invalid field type: ${field.type}`,
-        );
-      }
-
-      const normalizedKey = field.key.trim();
-      if (seenKeys.has(normalizedKey)) {
-        throw new BadRequestException(
-          `duplicate field key: ${normalizedKey}`,
-        );
-      }
-      seenKeys.add(normalizedKey);
-
-      const requiresOptions = ['select', 'radio', 'checkbox'].includes(
-        field.type,
-      );
-      if (requiresOptions && (!field.options || field.options.length === 0)) {
-        throw new BadRequestException(
-          `field ${normalizedKey} requires at least one option`,
-        );
-      }
+    if (!allowedMimes.includes(file.mimetype)) {
+      throw new BadRequestException('Only PDF or Word documents are allowed');
     }
   }
-  
+
+  private resolveFileExtension(file: Express.Multer.File) {
+    if (file.mimetype === 'application/pdf') {
+      return '.pdf';
+    }
+
+    if (file.mimetype === 'application/msword') {
+      return '.doc';
+    }
+
+    if (
+      file.mimetype ===
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ) {
+      return '.docx';
+    }
+
+    const originalExt = extname(file.originalname || '').toLowerCase();
+    if (['.pdf', '.doc', '.docx'].includes(originalExt)) {
+      return originalExt;
+    }
+
+    throw new BadRequestException('Unsupported template file format');
+  }
+
+  private toAbsolutePath(pathValue: string) {
+    return isAbsolute(pathValue) ? pathValue : join(process.cwd(), pathValue);
+  }
+
+  private async deleteFileIfExists(pathValue: string) {
+    try {
+      await access(pathValue);
+      await unlink(pathValue);
+    } catch {
+      return;
+    }
+  }
 }

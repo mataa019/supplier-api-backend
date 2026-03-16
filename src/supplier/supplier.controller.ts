@@ -5,8 +5,10 @@ import {
 	Param,
 	Patch,
 	Request,
+	Res,
 	UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SupplierService } from './supplier.service';
@@ -23,13 +25,17 @@ import { ApiProtectedEndpoint } from '../common/decorators';
 export class SupplierController {
 	constructor(private supplierService: SupplierService) {}
 
-	@Get('categories/:categoryId/form-template')
+	@Get('categories/:categoryId/template')
 	@ApiProtectedEndpoint(
-		'Get category form template',
-		'Returns the online form template assigned to a category',
+		'Download category template',
+		'Downloads the template document attached to the selected category',
 	)
-	async getCategoryFormTemplate(@Param('categoryId') categoryId: string) {
-		return this.supplierService.getCategoryFormTemplate(categoryId);
+	async downloadCategoryTemplate(
+		@Param('categoryId') categoryId: string,
+		@Res() res: Response,
+	) {
+		const file = await this.supplierService.getCategoryTemplateDocument(categoryId);
+		return res.download(file.absolutePath, file.fileName);
 	}
 
 	@Get('me')

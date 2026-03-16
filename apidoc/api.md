@@ -212,11 +212,14 @@
 | GET | `/categories` | Any | List active categories |
 | GET | `/categories/:categoryId` | Any | Get category details |
 | GET | `/suppliers/categories/:categoryId/form-template` | supplier | Get online form template (JSON schema) |
-| POST | `/admin/categories` | admin | Create category |
-| PATCH | `/admin/categories/:categoryId` | admin | Update category |
-| DELETE | `/admin/categories/:categoryId` | admin | Delete category |
+| GET | `/admin/suppliers/categories` | admin/manager | List categories |
+| GET | `/admin/suppliers/categories/:categoryId` | admin/manager | Get category details |
+| POST | `/admin/suppliers/categories` | admin | Create category |
+| PATCH | `/admin/suppliers/categories/:categoryId` | admin | Update category |
+| DELETE | `/admin/suppliers/categories/:categoryId` | admin | Delete category |
 | POST | `/admin/suppliers/form-templates` | admin | Create a form template and optionally assign it to a category |
 | GET | `/admin/suppliers/form-templates` | admin/manager | List available predefined templates |
+| GET | `/admin/suppliers/form-templates/library` | admin/manager | List form templates from code library |
 | PATCH | `/admin/suppliers/categories/:categoryId/template` | admin | Assign predefined template to category |
 | DELETE | `/admin/suppliers/categories/:categoryId/template` | admin | Unassign template from category |
 
@@ -228,31 +231,34 @@
 &limit=10
 ```
 
-### Body: POST `/admin/categories`
+### Body: POST `/admin/suppliers/categories`
 ```json
 {
   "name": "string",
   "description": "string",
   "applicationFee": 2500,
-  "currency": "ZMW",
-  "status": "active | inactive"
+  "status": "active | inactive",
+  "templateId": "string (optional)",
+  "documentTemplate": "string (optional)"
 }
 ```
 
-### Body: PATCH `/admin/categories/:categoryId`
+### Body: PATCH `/admin/suppliers/categories/:categoryId`
 ```json
 {
   "name": "string (optional)",
   "description": "string (optional)",
   "applicationFee": "number (optional)",
-  "currency": "string (optional)",
-  "status": "string (optional)"
+  "status": "active | inactive (optional)",
+  "templateId": "string | null (optional)",
+  "documentTemplate": "string | null (optional)"
 }
 ```
 
 ### Body: POST `/admin/suppliers/form-templates`
 ```json
 {
+  "templateCode": "supplier_onboarding_v1 (optional)",
   "name": "Supplier Onboarding Form",
   "version": "1.0.0",
   "description": "Default supplier onboarding form",
@@ -275,6 +281,8 @@
   ]
 }
 ```
+
+> Note: `templateCode` can load a predefined field schema from `src/admin/form-template.data.ts`.
 
 ### Body: PATCH `/admin/suppliers/categories/:categoryId/template`
 ```json

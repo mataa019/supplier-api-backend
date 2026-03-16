@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,10 +6,13 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles, RolesGuard } from '../Auth/jwt/roles';
 import { ApiAdminEndpoint, ApiGetByIdEndpoint } from '../common/decorators';
 import { AdminSupplierService } from './admin-supplier.service';
@@ -25,7 +27,7 @@ export class AdminSupplierController {
 
   @Get('categories')
   @Roles('admin', 'manager')
-  @ApiAdminEndpoint('List categories', 'Returns all categories with assigned templates')
+  @ApiAdminEndpoint('List categories', 'Returns all categories')
   async listCategories() {
     return this.adminSupplierService.listCategories();
   }
@@ -47,7 +49,6 @@ export class AdminSupplierController {
       description?: string;
       applicationFee?: number;
       status?: 'active' | 'inactive';
-      templateId?: string;
       documentTemplate?: string;
     },
   ) {
@@ -65,7 +66,6 @@ export class AdminSupplierController {
       description?: string;
       applicationFee?: number;
       status?: 'active' | 'inactive';
-      templateId?: string | null;
       documentTemplate?: string | null;
     },
   ) {
@@ -79,82 +79,22 @@ export class AdminSupplierController {
     return this.adminSupplierService.deleteCategory(categoryId);
   }
 
-  @Post('form-templates')
+  @Post('categories/:categoryId/template')
   @Roles('admin')
-  @ApiAdminEndpoint(
-    'Create form template',
-    'Creates a form template and optionally assigns it to a category',
-  )
-  async createFormTemplate(
-    @Body()
-    body: {
-      name?: string;
-      version?: string;
-      description?: string;
-      categoryId?: string;
-      fields?: Array<{
-        key: string;
-        label: string;
-        type:
-          | 'text'
-          | 'textarea'
-          | 'number'
-          | 'email'
-          | 'phone'
-          | 'date'
-          | 'select'
-          | 'radio'
-          | 'checkbox'
-          | 'boolean';
-        required?: boolean;
-        placeholder?: string;
-        helpText?: string;
-        options?: string[];
-      }>;
-    },
-  ) {
-    return this.adminSupplierService.createFormTemplate(body);
-  }
-
-  @Get('form-templates/library')
-  @Roles('admin', 'manager')
-  @ApiAdminEndpoint(
-    'List template library',
-    'Returns reusable template schemas from code file',
-  )
-  async listTemplateLibrary() {
-    return this.adminSupplierService.listTemplateLibrary();
-  }
-
-  @Get('form-templates')
-  @Roles('admin', 'manager')
-  @ApiAdminEndpoint('List available form templates', 'Returns active form templates')
-  async listFormTemplates() {
-    return this.adminSupplierService.listFormTemplates();
-  }
-
-  @Patch('categories/:categoryId/template')
-  @Roles('admin')
-  @ApiAdminEndpoint('Assign category form template', 'Category form template assigned')
-  async assignCategoryTemplate(
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiAdminEndpoint('Upload category template document', 'Template document uploaded and attached to category')
+  async uploadCategoryTemplate(
     @Param('categoryId') categoryId: string,
-    @Body() body: { templateId?: string },
+    @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!body?.templateId) {
-      throw new BadRequestException('templateId is required');
-    }
-
-    return this.adminSupplierService.assignCategoryTemplate(
-      categoryId,
-      body.templateId,
-    );
+    return this.adminSupplierService.uploadCategoryTemplateDocument(categoryId, file);
   }
 
   @Delete('categories/:categoryId/template')
   @Roles('admin')
-  @ApiAdminEndpoint('Unassign category form template', 'Category form template unassigned')
-  async unassignCategoryTemplate(@Param('categoryId') categoryId: string) {
-    return this.adminSupplierService.unassignCategoryTemplate(categoryId);
+  @ApiAdminEndpoint('Remove category template document', 'Template document removed from category')
+  async removeCategoryTemplate(@Param('categoryId') categoryId: string) {
+    return this.adminSupplierService.removeCategoryTemplateDocument(categoryId);
   }
 
   @Get()
@@ -173,10 +113,7 @@ export class AdminSupplierController {
 
   @Get(':supplierId/applications')
   @Roles('admin', 'manager')
-  @ApiAdminEndpoint(
-    "Get supplier's applications",
-    'Returns applications for supplier',
-  )
+  @ApiAdminEndpoint("Get supplier's applications", 'Returns applications for supplier')
   async getSupplierApplications(@Param('supplierId') supplierId: string) {
     return this.adminSupplierService.getSupplierApplications(supplierId);
   }
