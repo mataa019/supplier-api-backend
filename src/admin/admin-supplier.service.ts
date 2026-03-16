@@ -54,7 +54,7 @@ export class AdminSupplierService {
   async createCategory(dto: {
     name?: string;
     requirements: string;
-    description: string;
+    description?: string;
     applicationFee?: number;
     status?: 'active' | 'inactive';
     documentTemplate?: string;
@@ -78,7 +78,7 @@ export class AdminSupplierService {
         applicationFee: dto.applicationFee,
         status: dto.status ? (dto.status as CategoryStatus) : undefined,
         documentTemplate: dto.documentTemplate?.trim() || null,
-        requirements: dto.requirements.trim(),
+        Requirements: dto.requirements.trim(),
       },
     });
   }

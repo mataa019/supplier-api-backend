@@ -94,7 +94,6 @@ model Category {
   applicationFee   Float
   Requirements     String         
   documentTemplate String?
-  templateId       String?
   status           CategoryStatus  @default(active)
   createdAt        DateTime        @default(now())
   applications     Application[]
@@ -111,8 +110,6 @@ model Application {
   supplierId  String
   category    Category           @relation(fields: [categoryId], references: [id])
   categoryId  String
-  templateId  String?
-  responses   Json?
   status      ApplicationStatus  @default(draft)
   submittedAt DateTime?
   reviewedAt  DateTime?
