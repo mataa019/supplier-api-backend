@@ -41,7 +41,6 @@ export class SupplierService {
 		if (!existingSupplier) {
 			throw new NotFoundException('Supplier profile not found');
 		}
-
 		return this.prisma.supplier.update({
 			where: { userId },
 			data: {

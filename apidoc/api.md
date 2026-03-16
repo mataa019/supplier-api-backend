@@ -211,12 +211,13 @@
 |--------|----------|------|-------------|
 | GET | `/categories` | Any | List active categories |
 | GET | `/categories/:categoryId` | Any | Get category details |
-| GET | `/categories/:categoryId/template` | supplier | Download application template |
+| GET | `/categories/:categoryId/form-template` | supplier | Get online form template (JSON schema) |
 | POST | `/admin/categories` | admin | Create category |
 | PATCH | `/admin/categories/:categoryId` | admin | Update category |
 | DELETE | `/admin/categories/:categoryId` | admin | Delete category |
-| POST | `/admin/categories/:categoryId/template` | admin | Upload template file |
-| DELETE | `/admin/categories/:categoryId/template` | admin | Remove template |
+| GET | `/admin/form-templates` | admin | List available predefined templates |
+| PATCH | `/admin/categories/:categoryId/template` | admin | Assign predefined template to category |
+| DELETE | `/admin/categories/:categoryId/template` | admin | Unassign template from category |
 
 ### Query: GET `/categories`
 ```
@@ -248,10 +249,29 @@
 }
 ```
 
-### Body: POST `/admin/categories/:categoryId/template`
+### Body: PATCH `/admin/categories/:categoryId/template`
+```json
+{
+  "templateId": "string"
+}
 ```
-Content-Type: multipart/form-data
-form-data: file (PDF or DOCX)
+
+### Response: GET `/categories/:categoryId/form-template`
+```json
+{
+  "templateId": "string",
+  "templateName": "string",
+  "version": "1.0.0",
+  "fields": [
+    {
+      "key": "businessNature",
+      "label": "Nature of Business",
+      "type": "text",
+      "required": true,
+      "options": []
+    }
+  ]
+}
 ```
 
 ---
@@ -277,6 +297,10 @@ form-data: file (PDF or DOCX)
 ```json
 {
   "categoryId": "string",
+  "templateId": "string",
+  "responses": {
+    "businessNature": "string"
+  },
   "notes": "string (optional)"
 }
 ```
@@ -285,6 +309,9 @@ form-data: file (PDF or DOCX)
 ```json
 {
   "categoryId": "string (optional)",
+  "responses": {
+    "businessNature": "string (optional)"
+  },
   "notes": "string (optional)"
 }
 ```
