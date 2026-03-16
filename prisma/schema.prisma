@@ -92,6 +92,7 @@ model Category {
   name             String
   description      String?
   applicationFee   Float
+  Requirements    String         
   documentTemplate String?
   templateId       String?
   status           CategoryStatus  @default(active)
