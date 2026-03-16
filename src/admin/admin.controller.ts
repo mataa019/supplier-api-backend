@@ -37,6 +37,15 @@ export class AdminController {
 		return this.adminService.listAccounts();
 	}
 
+	@Get('meta/roles')
+	@ApiAdminEndpoint(
+		'Get role options',
+		'Returns available and assignable roles for account management',
+	)
+	async getRoleOptions() {
+		return this.adminService.getRoleOptions();
+	}
+
 	@Get(':accountId')
 	@ApiGetByIdEndpoint('Get single account', 'Account details')
 	async getAccount(@Param('accountId') accountId: string) {
