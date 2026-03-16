@@ -93,6 +93,8 @@ model Category {
   description      String?
   applicationFee   Float
   documentTemplate String
+  templateId       String?
+  formTemplate     FormTemplate?   @relation(fields: [templateId], references: [id])
   status           CategoryStatus  @default(active)
   createdAt        DateTime        @default(now())
   applications     Application[]
@@ -109,6 +111,9 @@ model Application {
   supplierId  String
   category    Category           @relation(fields: [categoryId], references: [id])
   categoryId  String
+  templateId  String?
+  formTemplate FormTemplate?     @relation(fields: [templateId], references: [id])
+  responses   Json?
   status      ApplicationStatus  @default(draft)
   submittedAt DateTime?
   reviewedAt  DateTime?
@@ -117,6 +122,21 @@ model Application {
   createdAt   DateTime           @default(now())
   documents   Document[]
   payments    Payment[]
+}
+
+model FormTemplate {
+  id           String        @id @default(cuid())
+  name         String
+  version      String        @default("1.0.0")
+  description  String?
+  fields       Json
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  categories   Category[]
+  applications Application[]
+
+  @@unique([name, version])
 }
 
 enum ApplicationStatus {
