@@ -48,6 +48,7 @@ export class AdminSupplierController {
       name?: string;
       description?: string;
       applicationFee?: number;
+      requirements: string;
       status?: 'active' | 'inactive';
       documentTemplate?: string;
     },
