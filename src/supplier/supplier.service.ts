@@ -50,6 +50,9 @@ export class SupplierService {
 		return {
 			...category,
 			hasTemplateDocument: !!category.documentTemplate,
+			templateDownloadUrl: category.documentTemplate
+				? `/suppliers/categories/${category.id}/template`
+				: null,
 		};
 	}
 
