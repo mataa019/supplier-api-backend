@@ -41,7 +41,7 @@ export class AdminSupplierController {
   }
 
   @Post('categories')
-  @Roles('admin')
+  @Roles('admin', 'manager')
   @ApiAdminEndpoint('Create category', 'Category created')
   async createCategory(
     @Body() body: CreateCategoryDto,
@@ -50,7 +50,7 @@ export class AdminSupplierController {
   }
 
   @Patch('categories/:categoryId')
-  @Roles('admin')
+  @Roles('admin', 'manager')
   @ApiAdminEndpoint('Update category', 'Category updated')
   async updateCategory(
     @Param('categoryId') categoryId: string,
