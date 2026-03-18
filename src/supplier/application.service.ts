@@ -157,37 +157,6 @@ export class SupplierApplicationService {
 		return updated;
 	}
 
-	async withdrawApplication(
-		userId: string,
-		applicationId: string,
-		dto: WithdrawApplicationDto,
-	) {
-		const application = await this.getOwnedApplication(userId, applicationId);
-
-		if (!['draft', 'submitted',].includes(application.status)) {
-			throw new BadRequestException('This application cannot be withdrawn');
-		}
-
-		const updated = await this.prisma.application.update({
-			where: { id: applicationId },
-			data: {
-				status: 'withdrawn',
-				remarks: dto.reason.trim(),
-			},
-			include: this.applicationInclude(),
-		});
-
-		await this.auditService.log({
-			userId,
-			action: AuditAction.WITHDRAW_APPLICATION,
-			entity: AuditEntity.APPLICATION,
-			entityId: updated.id,
-			details: { status: updated.status, reason: dto.reason },
-		});
-
-		return updated;
-	}
-
 	async getApplicationTimeline(userId: string, applicationId: string) {
 		await this.getOwnedApplication(userId, applicationId);
 
