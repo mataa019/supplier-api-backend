@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -44,26 +45,31 @@ export class AdminSupplierController {
   @Roles('admin', 'manager')
   @ApiAdminEndpoint('Create category', 'Category created')
   async createCategory(
+    @Req() req: any,
     @Body() body: CreateCategoryDto,
   ) {
-    return this.adminSupplierService.createCategory(body);
+    return this.adminSupplierService.createCategory(body, req.user.id);
   }
 
   @Patch('categories/:categoryId')
   @Roles('admin', 'manager')
   @ApiAdminEndpoint('Update category', 'Category updated')
   async updateCategory(
+    @Req() req: any,
     @Param('categoryId') categoryId: string,
     @Body() body: UpdateCategoryDto,
   ) {
-    return this.adminSupplierService.updateCategory(categoryId, body);
+    return this.adminSupplierService.updateCategory(categoryId, body, req.user.id);
   }
 
   @Delete('categories/:categoryId')
   @Roles('admin')
   @ApiAdminEndpoint('Delete category', 'Category deleted')
-  async deleteCategory(@Param('categoryId') categoryId: string) {
-    return this.adminSupplierService.deleteCategory(categoryId);
+  async deleteCategory(
+    @Req() req: any,
+    @Param('categoryId') categoryId: string,
+  ) {
+    return this.adminSupplierService.deleteCategory(categoryId, req.user.id);
   }
 
   @Post('categories/:categoryId/template')
@@ -71,17 +77,25 @@ export class AdminSupplierController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiAdminEndpoint('Upload category template document', 'Template document uploaded and attached to category')
   async uploadCategoryTemplate(
+    @Req() req: any,
     @Param('categoryId') categoryId: string,
     @UploadedFile() file: any,
   ) {
-    return this.adminSupplierService.uploadCategoryTemplateDocument(categoryId, file);
+    return this.adminSupplierService.uploadCategoryTemplateDocument(
+      categoryId,
+      file,
+      req.user.id,
+    );
   }
 
   @Delete('categories/:categoryId/template')
   @Roles('admin')
   @ApiAdminEndpoint('Remove category template document', 'Template document removed from category')
-  async removeCategoryTemplate(@Param('categoryId') categoryId: string) {
-    return this.adminSupplierService.removeCategoryTemplateDocument(categoryId);
+  async removeCategoryTemplate(
+    @Req() req: any,
+    @Param('categoryId') categoryId: string,
+  ) {
+    return this.adminSupplierService.removeCategoryTemplateDocument(categoryId, req.user.id);
   }
 
   @Get()
@@ -116,16 +130,20 @@ export class AdminSupplierController {
   @Roles('admin')
   @ApiAdminEndpoint('Update supplier status', 'Supplier status updated')
   async updateSupplierStatus(
+    @Req() req: any,
     @Param('supplierId') supplierId: string,
     @Body() dto: UpdateSupplierStatusDto,
   ) {
-    return this.adminSupplierService.updateSupplierStatus(supplierId, dto);
+    return this.adminSupplierService.updateSupplierStatus(supplierId, dto, req.user.id);
   }
 
   @Delete(':supplierId')
   @Roles('admin')
   @ApiAdminEndpoint('Delete supplier', 'Supplier deleted')
-  async deleteSupplier(@Param('supplierId') supplierId: string) {
-    return this.adminSupplierService.deleteSupplier(supplierId);
+  async deleteSupplier(
+    @Req() req: any,
+    @Param('supplierId') supplierId: string,
+  ) {
+    return this.adminSupplierService.deleteSupplier(supplierId, req.user.id);
   }
 }
