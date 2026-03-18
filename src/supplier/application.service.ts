@@ -11,7 +11,6 @@ import {
 	SubmitApplicationDto,
 	SupplierApplicationsQueryDto,
 	UpdateApplicationDto,
-	WithdrawApplicationDto,
 } from './dto/application.dto';
 
 @Injectable()
@@ -129,7 +128,7 @@ export class SupplierApplicationService {
 		dto: SubmitApplicationDto,
 	) {
 		if (!dto.declarationAccepted) {
-			throw new BadRequestException('declarationAccepted must be true');
+			throw new BadRequestException('declaration Accepted must be true');
 		}
 
 		const application = await this.getOwnedApplication(userId, applicationId);
