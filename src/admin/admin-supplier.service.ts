@@ -95,8 +95,8 @@ export class AdminSupplierService {
         name: created.name,
         status: created.status,
         applicationFee: created.applicationFee,
-        actorRole: userRole,
-        actorEmail: userEmail,
+        createdByRole: userRole,
+        createdByEmail: userEmail,
       },
     });
 
@@ -145,8 +145,8 @@ export class AdminSupplierService {
         name: updated.name,
         status: updated.status,
         applicationFee: updated.applicationFee,
-        actorRole: userRole,
-        actorEmail: userEmail,
+        createdByRole: userRole,
+        createdByEmail: userEmail,
       },
     });
 
@@ -187,8 +187,8 @@ export class AdminSupplierService {
       entityId: categoryId,
       details: {
         documentTemplate: category.documentTemplate ?? null,
-        actorRole: userRole,
-        actorEmail: userEmail,
+        createdByRole: userRole,
+        createdByEmail: userEmail,
       },
     });
 
@@ -245,8 +245,8 @@ export class AdminSupplierService {
       entityId: updated.id,
       details: {
         documentTemplate: updated.documentTemplate,
-        actorRole: userRole,
-        actorEmail: userEmail,
+        createdByRole: userRole,
+        createdByEmail: userEmail,
       },
     });
 
@@ -282,8 +282,8 @@ export class AdminSupplierService {
       entityId: categoryId,
       details: {
         documentTemplate: null,
-        actorRole: userRole,
-        actorEmail: userEmail,
+        createdByRole: userRole,
+        createdByEmail: userEmail,
       },
     });
 
@@ -400,8 +400,8 @@ export class AdminSupplierService {
       entityId: updated.id,
       details: {
         status: updated.status,
-        actorRole: userRole,
-        actorEmail: userEmail,
+        createdByRole: userRole,
+        createdByEmail: userEmail,
       },
     });
 
@@ -436,8 +436,8 @@ export class AdminSupplierService {
       entity: AuditEntity.SUPPLIER,
       entityId: supplierId,
       details: {
-        actorRole: userRole,
-        actorEmail: userEmail,
+        createdByRole: userRole,
+        createdByEmail: userEmail,
       },
     });
 
