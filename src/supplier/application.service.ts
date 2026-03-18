@@ -22,6 +22,7 @@ export class SupplierApplicationService {
 
 	async createApplication(userId: string, dto: CreateApplicationDto) {
 		const supplier = await this.getSupplierByUserId(userId);
+		const actor = await this.getUserAuditContext(userId);
 		await this.ensureActiveCategoryExists(dto.categoryId);
 
 		const application = await this.prisma.application.create({
@@ -38,7 +39,12 @@ export class SupplierApplicationService {
 			action: AuditAction.CREATE_APPLICATION,
 			entity: AuditEntity.APPLICATION,
 			entityId: application.id,
-			details: { categoryId: application.categoryId, status: application.status },
+			details: {
+				categoryId: application.categoryId,
+				status: application.status,
+				createdByRole: actor.role,
+				createdByEmail: actor.email,
+			},
 		});
 
 		return application;
@@ -94,6 +100,7 @@ export class SupplierApplicationService {
 		dto: UpdateApplicationDto,
 	) {
 		const application = await this.getOwnedApplication(userId, applicationId);
+		const actor = await this.getUserAuditContext(userId);
 
 		if (application.status !== 'draft') {
 			throw new BadRequestException('Only draft applications can be updated');
@@ -116,7 +123,12 @@ export class SupplierApplicationService {
 			action: AuditAction.UPDATE_APPLICATION,
 			entity: AuditEntity.APPLICATION,
 			entityId: updated.id,
-			details: { categoryId: updated.categoryId, status: updated.status },
+			details: {
+				categoryId: updated.categoryId,
+				status: updated.status,
+				createdByRole: actor.role,
+				createdByEmail: actor.email,
+			},
 		});
 
 		return updated;
@@ -132,6 +144,7 @@ export class SupplierApplicationService {
 		}
 
 		const application = await this.getOwnedApplication(userId, applicationId);
+		const actor = await this.getUserAuditContext(userId);
 		if (application.status !== 'draft') {
 			throw new BadRequestException('Only draft applications can be submitted');
 		}
@@ -150,7 +163,11 @@ export class SupplierApplicationService {
 			action: AuditAction.SUBMIT_APPLICATION,
 			entity: AuditEntity.APPLICATION,
 			entityId: updated.id,
-			details: { status: updated.status },
+			details: {
+				status: updated.status,
+				createdByRole: actor.role,
+				createdByEmail: actor.email,
+			},
 		});
 
 		return updated;
@@ -194,6 +211,19 @@ export class SupplierApplicationService {
 		}
 
 		return supplier;
+	}
+
+	private async getUserAuditContext(userId: string) {
+		const user = await this.prisma.user.findUnique({
+			where: { id: userId },
+			select: { role: true, email: true },
+		});
+
+		if (!user) {
+			throw new NotFoundException('User not found');
+		}
+
+		return user;
 	}
 
 	private async ensureActiveCategoryExists(categoryId: string) {

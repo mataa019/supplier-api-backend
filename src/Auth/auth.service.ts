@@ -91,7 +91,12 @@ export class AuthService {
       action: AuditAction.REGISTER,
       entity: AuditEntity.USER,
       entityId: user.id,
-      details: { email: user.email, role: user.role },
+      details: {
+        email: user.email,
+        role: user.role,
+        createdByRole: user.role,
+        createdByEmail: user.email,
+      },
       ipAddress,
     });
 
@@ -139,7 +144,12 @@ export class AuthService {
       action: AuditAction.REGISTER,
       entity: AuditEntity.USER,
       entityId: user.id,
-      details: { email: user.email, role: user.role },
+      details: {
+        email: user.email,
+        role: user.role,
+        createdByRole: user.role,
+        createdByEmail: user.email,
+      },
       ipAddress,
     });
 
@@ -168,7 +178,12 @@ export class AuthService {
         action: AuditAction.LOGIN_FAILED,
         entity: AuditEntity.USER,
         entityId: user?.id,
-        details: { email: dto.email, reason },
+        details: {
+          email: dto.email,
+          reason,
+          createdByRole: user?.role ?? null,
+          createdByEmail: dto.email,
+        },
         ipAddress,
       });
       throw new UnauthorizedException(message);
@@ -197,7 +212,12 @@ export class AuthService {
       action: AuditAction.LOGIN,
       entity: AuditEntity.USER,
       entityId: user.id,
-      details: { email: user.email, role: user.role },
+      details: {
+        email: user.email,
+        role: user.role,
+        createdByRole: user.role,
+        createdByEmail: user.email,
+      },
       ipAddress,
     });
 
@@ -252,7 +272,11 @@ export class AuthService {
         action: AuditAction.LOGIN_FAILED,
         entity: AuditEntity.USER,
         entityId: user.id,
-        details: { reason: 'Invalid or expired OTP' },
+        details: {
+          reason: 'Invalid or expired OTP',
+          createdByRole: user.role,
+          createdByEmail: user.email,
+        },
         ipAddress,
       });
       throw new BadRequestException('Invalid or expired OTP');
@@ -278,7 +302,12 @@ export class AuthService {
       action: AuditAction.LOGIN,
       entity: AuditEntity.USER,
       entityId: user.id,
-      details: { email: user.email, action: 'email_verified' },
+      details: {
+        email: user.email,
+        action: 'email_verified',
+        createdByRole: user.role,
+        createdByEmail: user.email,
+      },
       ipAddress,
     });
 
@@ -336,7 +365,11 @@ export class AuthService {
       action: AuditAction.REGISTER,
       entity: AuditEntity.USER,
       entityId: user.id,
-      details: { action: 'otp_resent' },
+      details: {
+        action: 'otp_resent',
+        createdByRole: user.role,
+        createdByEmail: user.email,
+      },
       ipAddress,
     });
 
