@@ -79,8 +79,13 @@ export class AuditService {
       this.prisma.audit.count({ where }),
     ]);
 
+    const normalized = data.map((entry) => ({
+      ...entry,
+      details: this.parseDetails(entry.details),
+    }));
+
     return {
-      data,
+      data: normalized,
       meta: {
         total,
         page,
@@ -92,7 +97,7 @@ export class AuditService {
 
   /** Get a single audit entry by ID */
   async findOne(id: string) {
-    return this.prisma.audit.findUnique({
+    const entry = await this.prisma.audit.findUnique({
       where: { id },
       include: {
         user: {
@@ -100,5 +105,26 @@ export class AuditService {
         },
       },
     });
+
+    if (!entry) {
+      return null;
+    }
+
+    return {
+      ...entry,
+      details: this.parseDetails(entry.details),
+    };
+  }
+
+  private parseDetails(details?: string | null) {
+    if (!details) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(details);
+    } catch {
+      return details;
+    }
   }
 }

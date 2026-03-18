@@ -48,7 +48,12 @@ export class AdminSupplierController {
     @Req() req: any,
     @Body() body: CreateCategoryDto,
   ) {
-    return this.adminSupplierService.createCategory(body, req.user.id);
+    return this.adminSupplierService.createCategory(
+      body,
+      req.user.id,
+      req.user.role,
+      req.user.email,
+    );
   }
 
   @Patch('categories/:categoryId')
@@ -59,7 +64,13 @@ export class AdminSupplierController {
     @Param('categoryId') categoryId: string,
     @Body() body: UpdateCategoryDto,
   ) {
-    return this.adminSupplierService.updateCategory(categoryId, body, req.user.id);
+    return this.adminSupplierService.updateCategory(
+      categoryId,
+      body,
+      req.user.id,
+      req.user.role,
+      req.user.email,
+    );
   }
 
   @Delete('categories/:categoryId')
@@ -69,7 +80,12 @@ export class AdminSupplierController {
     @Req() req: any,
     @Param('categoryId') categoryId: string,
   ) {
-    return this.adminSupplierService.deleteCategory(categoryId, req.user.id);
+    return this.adminSupplierService.deleteCategory(
+      categoryId,
+      req.user.id,
+      req.user.role,
+      req.user.email,
+    );
   }
 
   @Post('categories/:categoryId/template')
@@ -85,6 +101,8 @@ export class AdminSupplierController {
       categoryId,
       file,
       req.user.id,
+      req.user.role,
+      req.user.email,
     );
   }
 
@@ -95,7 +113,12 @@ export class AdminSupplierController {
     @Req() req: any,
     @Param('categoryId') categoryId: string,
   ) {
-    return this.adminSupplierService.removeCategoryTemplateDocument(categoryId, req.user.id);
+    return this.adminSupplierService.removeCategoryTemplateDocument(
+      categoryId,
+      req.user.id,
+      req.user.role,
+      req.user.email,
+    );
   }
 
   @Get()
@@ -134,7 +157,13 @@ export class AdminSupplierController {
     @Param('supplierId') supplierId: string,
     @Body() dto: UpdateSupplierStatusDto,
   ) {
-    return this.adminSupplierService.updateSupplierStatus(supplierId, dto, req.user.id);
+    return this.adminSupplierService.updateSupplierStatus(
+      supplierId,
+      dto,
+      req.user.id,
+      req.user.role,
+      req.user.email,
+    );
   }
 
   @Delete(':supplierId')
@@ -144,6 +173,11 @@ export class AdminSupplierController {
     @Req() req: any,
     @Param('supplierId') supplierId: string,
   ) {
-    return this.adminSupplierService.deleteSupplier(supplierId, req.user.id);
+    return this.adminSupplierService.deleteSupplier(
+      supplierId,
+      req.user.id,
+      req.user.role,
+      req.user.email,
+    );
   }
 }

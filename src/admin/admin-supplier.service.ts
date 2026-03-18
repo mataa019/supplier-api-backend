@@ -57,7 +57,12 @@ export class AdminSupplierService {
     return category;
   }
 
-  async createCategory(dto: CreateCategoryDto, userId: string) {
+  async createCategory(
+    dto: CreateCategoryDto,
+    userId: string,
+    userRole?: string,
+    userEmail?: string,
+  ) {
     if (!dto?.name?.trim()) {
       throw new BadRequestException('name is required');
     }
@@ -90,6 +95,8 @@ export class AdminSupplierService {
         name: created.name,
         status: created.status,
         applicationFee: created.applicationFee,
+        actorRole: userRole,
+        actorEmail: userEmail,
       },
     });
 
@@ -99,6 +106,8 @@ export class AdminSupplierService {
     categoryId: string,
     dto: UpdateCategoryDto,
     userId: string,
+    userRole?: string,
+    userEmail?: string,
   ) {
     await this.ensureCategoryExists(categoryId);
 
@@ -136,13 +145,20 @@ export class AdminSupplierService {
         name: updated.name,
         status: updated.status,
         applicationFee: updated.applicationFee,
+        actorRole: userRole,
+        actorEmail: userEmail,
       },
     });
 
     return updated;
   }
 
-  async deleteCategory(categoryId: string, userId: string) {
+  async deleteCategory(
+    categoryId: string,
+    userId: string,
+    userRole?: string,
+    userEmail?: string,
+  ) {
     const category = await this.ensureCategoryExists(categoryId);
 
     const applicationCount = await this.prisma.application.count({
@@ -169,7 +185,11 @@ export class AdminSupplierService {
       action: AuditAction.DELETE_CATEGORY,
       entity: AuditEntity.CATEGORY,
       entityId: categoryId,
-      details: { documentTemplate: category.documentTemplate ?? null },
+      details: {
+        documentTemplate: category.documentTemplate ?? null,
+        actorRole: userRole,
+        actorEmail: userEmail,
+      },
     });
 
     return { message: 'Category deleted successfully' };
@@ -179,6 +199,8 @@ export class AdminSupplierService {
     categoryId: string,
     file: any,
     userId: string,
+    userRole?: string,
+    userEmail?: string,
   ) {
     if (!file) {
       throw new BadRequestException('file is required');
@@ -221,7 +243,11 @@ export class AdminSupplierService {
       action: AuditAction.UPDATE_CATEGORY,
       entity: AuditEntity.CATEGORY,
       entityId: updated.id,
-      details: { documentTemplate: updated.documentTemplate },
+      details: {
+        documentTemplate: updated.documentTemplate,
+        actorRole: userRole,
+        actorEmail: userEmail,
+      },
     });
 
     return {
@@ -230,7 +256,12 @@ export class AdminSupplierService {
     };
   }
 
-  async removeCategoryTemplateDocument(categoryId: string, userId: string) {
+  async removeCategoryTemplateDocument(
+    categoryId: string,
+    userId: string,
+    userRole?: string,
+    userEmail?: string,
+  ) {
     const category = await this.ensureCategoryExists(categoryId);
 
     if (!category.documentTemplate) {
@@ -249,7 +280,11 @@ export class AdminSupplierService {
       action: AuditAction.UPDATE_CATEGORY,
       entity: AuditEntity.CATEGORY,
       entityId: categoryId,
-      details: { documentTemplate: null },
+      details: {
+        documentTemplate: null,
+        actorRole: userRole,
+        actorEmail: userEmail,
+      },
     });
 
     await this.deleteFileIfExists(oldPath);
@@ -337,6 +372,8 @@ export class AdminSupplierService {
     supplierId: string,
     dto: UpdateSupplierStatusDto,
     userId: string,
+    userRole?: string,
+    userEmail?: string,
   ) {
     await this.ensureSupplierExists(supplierId);
 
@@ -361,13 +398,22 @@ export class AdminSupplierService {
       action: AuditAction.UPDATE_SUPPLIER,
       entity: AuditEntity.SUPPLIER,
       entityId: updated.id,
-      details: { status: updated.status },
+      details: {
+        status: updated.status,
+        actorRole: userRole,
+        actorEmail: userEmail,
+      },
     });
 
     return updated;
   }
 
-  async deleteSupplier(supplierId: string, userId: string) {
+  async deleteSupplier(
+    supplierId: string,
+    userId: string,
+    userRole?: string,
+    userEmail?: string,
+  ) {
     await this.ensureSupplierExists(supplierId);
 
     const appCount = await this.prisma.application.count({
@@ -389,6 +435,10 @@ export class AdminSupplierService {
       action: AuditAction.DELETE_SUPPLIER,
       entity: AuditEntity.SUPPLIER,
       entityId: supplierId,
+      details: {
+        actorRole: userRole,
+        actorEmail: userEmail,
+      },
     });
 
     return { message: 'Supplier deleted successfully' };
