@@ -46,12 +46,7 @@ export class RejectApplicationDto {
   remarks: string;
 }
 
-export class SupplierApplicationsQueryDto {
-  @ApiPropertyOptional({ enum: ['draft', 'submitted'] })
-  @IsOptional()
-  @IsIn(['draft', 'submitted'])
-  status?: 'draft' | 'submitted';
-
+export class BaseApplicationsQueryDto {
   @ApiPropertyOptional({ example: 'general' })
   @IsOptional()
   @IsString()
@@ -70,7 +65,19 @@ export class SupplierApplicationsQueryDto {
   limit?: number;
 }
 
-export class AdminApplicationsQueryDto extends SupplierApplicationsQueryDto {
+export class SupplierApplicationsQueryDto extends BaseApplicationsQueryDto {
+  @ApiPropertyOptional({ enum: ['draft', 'submitted'] })
+  @IsOptional()
+  @IsIn(['draft', 'submitted'])
+  status?: 'draft' | 'submitted';
+}
+
+export class AdminApplicationsQueryDto extends BaseApplicationsQueryDto {
+  @ApiPropertyOptional({ enum: ['draft', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'] })
+  @IsOptional()
+  @IsIn(['draft', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'])
+  status?: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'withdrawn';
+
   @ApiPropertyOptional({ example: 'cm9cat123xyz' })
   @IsOptional()
   @IsString()

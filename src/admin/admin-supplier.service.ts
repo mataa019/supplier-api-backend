@@ -58,11 +58,11 @@ export class AdminSupplierService {
     }
 
     if (typeof dto.applicationFee !== 'number' || Number.isNaN(dto.applicationFee)) {
-      throw new BadRequestException('applicationFee must be a valid number');
+      throw new BadRequestException('application Fee must be a valid number');
     }
 
     if (dto.applicationFee < 0) {
-      throw new BadRequestException('applicationFee cannot be negative');
+      throw new BadRequestException('application Fee cannot be negative');
     }
 
     return this.prisma.category.create({
