@@ -47,10 +47,10 @@ export class RejectApplicationDto {
 }
 
 export class SupplierApplicationsQueryDto {
-  @ApiPropertyOptional({ enum: ['draft', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'] })
+  @ApiPropertyOptional({ enum: ['draft', 'submitted'] })
   @IsOptional()
-  @IsIn(['draft', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'])
-  status?: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'withdrawn';
+  @IsIn(['draft', 'submitted'])
+  status?: 'draft' | 'submitted';
 
   @ApiPropertyOptional({ example: 'general' })
   @IsOptional()

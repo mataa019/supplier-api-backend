@@ -20,7 +20,7 @@ import {
 	SupplierApplicationsQueryDto,
 	UpdateApplicationDto,
 	WithdrawApplicationDto,
-} from '../common/dto/application.dto';
+} from './dto/application.dto';
 import { SupplierApplicationService } from './application.service';
 
 @ApiTags('Applications')

@@ -17,7 +17,7 @@ import {
 	AdminApplicationsQueryDto,
 	RejectApplicationDto,
 	ReviewApplicationDto,
-} from '../common/dto/application.dto';
+} from '../supplier/dto/application.dto';
 import { AdminApplicationService } from './admin-application.service';
 
 @ApiTags('Admin Applications')

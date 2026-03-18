@@ -12,7 +12,7 @@ import {
 	SupplierApplicationsQueryDto,
 	UpdateApplicationDto,
 	WithdrawApplicationDto,
-} from '../common/dto/application.dto';
+} from './dto/application.dto';
 
 @Injectable()
 export class SupplierApplicationService {
@@ -164,7 +164,7 @@ export class SupplierApplicationService {
 	) {
 		const application = await this.getOwnedApplication(userId, applicationId);
 
-		if (!['draft', 'submitted', 'under_review'].includes(application.status)) {
+		if (!['draft', 'submitted',].includes(application.status)) {
 			throw new BadRequestException('This application cannot be withdrawn');
 		}
 
