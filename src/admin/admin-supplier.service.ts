@@ -74,9 +74,8 @@ export class AdminSupplierService {
         documentTemplate: dto.documentTemplate?.trim() || null,
         Requirements: dto.requirements.trim(),
       },
-    });
-  }
-
+    }); 
+}
   async updateCategory(
     categoryId: string,
     dto: UpdateCategoryDto,
