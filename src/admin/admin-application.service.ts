@@ -70,6 +70,8 @@ export class AdminApplicationService {
 	async markUnderReview(
 		applicationId: string,
 		reviewerId: string,
+		reviewerRole: string,
+		reviewerEmail: string,
 		dto: ReviewApplicationDto,
 	) {
 		const application = await this.ensureApplicationExists(applicationId);
@@ -96,7 +98,12 @@ export class AdminApplicationService {
 			action: AuditAction.REVIEW_APPLICATION,
 			entity: AuditEntity.APPLICATION,
 			entityId: updated.id,
-			details: { status: updated.status, remarks: dto.remarks ?? null },
+			details: {
+				status: updated.status,
+				remarks: dto.remarks ?? null,
+				createdByRole: reviewerRole,
+				createdByEmail: reviewerEmail,
+			},
 		});
 
 		return updated;
@@ -105,6 +112,8 @@ export class AdminApplicationService {
 	async approveApplication(
 		applicationId: string,
 		reviewerId: string,
+		reviewerRole: string,
+		reviewerEmail: string,
 		dto: ReviewApplicationDto,
 	) {
 		const application = await this.ensureApplicationExists(applicationId);
@@ -131,7 +140,12 @@ export class AdminApplicationService {
 			action: AuditAction.APPROVE_APPLICATION,
 			entity: AuditEntity.APPLICATION,
 			entityId: updated.id,
-			details: { status: updated.status, remarks: dto.remarks ?? null },
+			details: {
+				status: updated.status,
+				remarks: dto.remarks ?? null,
+				createdByRole: reviewerRole,
+				createdByEmail: reviewerEmail,
+			},
 		});
 
 		return updated;
@@ -140,6 +154,8 @@ export class AdminApplicationService {
 	async rejectApplication(
 		applicationId: string,
 		reviewerId: string,
+		reviewerRole: string,
+		reviewerEmail: string,
 		dto: RejectApplicationDto,
 	) {
 		const application = await this.ensureApplicationExists(applicationId);
@@ -166,7 +182,12 @@ export class AdminApplicationService {
 			action: AuditAction.REJECT_APPLICATION,
 			entity: AuditEntity.APPLICATION,
 			entityId: updated.id,
-			details: { status: updated.status, remarks: dto.remarks },
+			details: {
+				status: updated.status,
+				remarks: dto.remarks,
+				createdByRole: reviewerRole,
+				createdByEmail: reviewerEmail,
+			},
 		});
 
 		return updated;

@@ -50,6 +50,8 @@ export class AdminApplicationController {
 		return this.adminApplicationService.markUnderReview(
 			applicationId,
 			req.user.id,
+			req.user.role,
+			req.user.email,
 			dto,
 		);
 	}
@@ -64,6 +66,8 @@ export class AdminApplicationController {
 		return this.adminApplicationService.approveApplication(
 			applicationId,
 			req.user.id,
+			req.user.role,
+			req.user.email,
 			dto,
 		);
 	}
@@ -78,6 +82,8 @@ export class AdminApplicationController {
 		return this.adminApplicationService.rejectApplication(
 			applicationId,
 			req.user.id,
+			req.user.role,
+			req.user.email,
 			dto,
 		);
 	}
