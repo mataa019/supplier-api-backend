@@ -100,7 +100,6 @@ export class AdminApplicationService {
 			entityId: updated.id,
 			details: {
 				status: updated.status,
-				remarks: dto.remarks ?? null,
 				createdByRole: reviewerRole,
 				createdByEmail: reviewerEmail,
 			},

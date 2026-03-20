@@ -1,4 +1,5 @@
 import {
+	ConflictException,
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
@@ -118,12 +119,44 @@ export class SupplierService {
 	async updateOwnProfile(userId: string, dto: UpdateOwnSupplierDto) {
 		const existingSupplier = await this.prisma.supplier.findUnique({
 			where: { userId },
-			select: { id: true, userId: true },
+			select: { id: true, userId: true, registrationNumber: true, tpin: true },
 		});
 
 		if (!existingSupplier) {
 			throw new NotFoundException('Supplier profile not found');
 		}
+
+		if (
+			dto.registrationNumber &&
+			dto.registrationNumber !== existingSupplier.registrationNumber
+		) {
+			const duplicateRegistrationNumber = await this.prisma.supplier.findFirst({
+				where: {
+					registrationNumber: dto.registrationNumber,
+					NOT: { id: existingSupplier.id },
+				},
+				select: { id: true },
+			});
+
+			if (duplicateRegistrationNumber) {
+				throw new ConflictException('Registration number already registered');
+			}
+		}
+
+		if (dto.tpin && dto.tpin !== existingSupplier.tpin) {
+			const duplicateTpin = await this.prisma.supplier.findFirst({
+				where: {
+					tpin: dto.tpin,
+					NOT: { id: existingSupplier.id },
+				},
+				select: { id: true },
+			});
+
+			if (duplicateTpin) {
+				throw new ConflictException('TPIN already registered');
+			}
+		}
+
 		return this.prisma.supplier.update({
 			where: { userId },
 			data: {

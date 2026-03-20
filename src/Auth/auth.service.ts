@@ -44,6 +44,27 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
+    const existingSupplierIdentity = await this.prisma.supplier.findFirst({
+      where: {
+        OR: [
+          { registrationNumber: dto.registrationNumber },
+          { tpin: dto.tpin },
+        ],
+      },
+      select: {
+        registrationNumber: true,
+        tpin: true,
+      },
+    });
+
+    if (existingSupplierIdentity?.registrationNumber === dto.registrationNumber) {
+      throw new ConflictException('Registration number already registered');
+    }
+
+    if (existingSupplierIdentity?.tpin === dto.tpin) {
+      throw new ConflictException('TPIN already registered');
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
@@ -52,7 +73,7 @@ export class AuthService {
       data: {
         email: dto.email,
         password: hashedPassword,
-        role: dto.role || 'supplier',
+        role: 'supplier',
         status: 'active',
         supplier: {
           create: {

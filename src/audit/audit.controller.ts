@@ -21,14 +21,12 @@ import { ApiAdminEndpoint, ApiGetByIdEndpoint } from '../common/decorators';
 export class AuditController {
   constructor(private auditService: AuditService) {}
 
-  /** GET /audit — list audit trail entries (with filters & pagination) */
   @Get()
   @ApiAdminEndpoint('List audit trail entries', 'Returns paginated audit entries')
   async findAll(@Query() query: QueryAuditDto) {
     return this.auditService.findAll(query);
   }
 
-  /** GET /audit/:id — get a single audit entry */
   @Get(':id')
   @ApiGetByIdEndpoint('Get audit entry by ID', 'Audit entry')
   async findOne(@Param('id') id: string) {

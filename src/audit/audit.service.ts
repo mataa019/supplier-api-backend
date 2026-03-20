@@ -97,14 +97,28 @@ export class AuditService {
 
   /** Get a single audit entry by ID */
   async findOne(id: string) {
-    const entry = await this.prisma.audit.findUnique({
-      where: { id },
+    const normalizedId = id.trim();
+
+    const entryById = await this.prisma.audit.findUnique({
+      where: { id: normalizedId },
       include: {
         user: {
           select: { id: true, email: true, role: true },
         },
       },
     });
+
+    const entry =
+      entryById ??
+      (await this.prisma.audit.findFirst({
+        where: { userId: normalizedId },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { id: true, email: true, role: true },
+          },
+        },
+      }));
 
     if (!entry) {
       return null;
