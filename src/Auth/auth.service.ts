@@ -346,37 +346,43 @@ export class AuthService {
       throw new BadRequestException('Account is inactive');
     }
 
-    if (!user.emailVerified || user.status !== 'active') {
-      await this.prisma.$transaction([
-        this.prisma.otp.update({
-          where: { id: otpRecord.id },
-          data: { used: true },
-        }),
-        this.prisma.user.update({
-          where: { id: user.id },
-          data: { emailVerified: true, status: 'active' },
-        }),
-      ]);
-    } else {
-      await this.prisma.otp.update({
+    await this.prisma.$transaction([
+      this.prisma.otp.update({
         where: { id: otpRecord.id },
         data: { used: true },
-      });
+      }),
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true, status: 'active' },
+      }),
+    ]);
+
+    const refreshedUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      include: { supplier: true },
+    });
+
+    if (!refreshedUser) {
+      throw new NotFoundException('User not found');
     }
 
     // Generate token after successful verification
-    const token = this.generateToken(user.id, user.email, user.role);
+    const token = this.generateToken(
+      refreshedUser.id,
+      refreshedUser.email,
+      refreshedUser.role,
+    );
 
     await this.auditService.log({
-      userId: user.id,
+      userId: refreshedUser.id,
       action: AuditAction.LOGIN,
       entity: AuditEntity.USER,
-      entityId: user.id,
+      entityId: refreshedUser.id,
       details: {
-        email: user.email,
+        email: refreshedUser.email,
         action: 'email_verified',
-        createdByRole: user.role,
-        createdByEmail: user.email,
+        createdByRole: refreshedUser.role,
+        createdByEmail: refreshedUser.email,
       },
       ipAddress,
     });
@@ -384,10 +390,10 @@ export class AuthService {
     return {
       message: 'Email verified successfully',
       user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        supplier: user.supplier,
+        id: refreshedUser.id,
+        email: refreshedUser.email,
+        role: refreshedUser.role,
+        supplier: refreshedUser.supplier,
       },
       accessToken: token,
     };

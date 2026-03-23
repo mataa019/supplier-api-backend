@@ -82,7 +82,6 @@ model Supplier {
 }
 
 enum SupplierStatus {
-  pending
   active
   suspended
 }
@@ -181,7 +180,6 @@ enum payment_status {
 }
 
 enum supplier_status {
-  pending
   active
   suspended
 }
