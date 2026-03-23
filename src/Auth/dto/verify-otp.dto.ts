@@ -1,14 +1,11 @@
-import { IsEmail, IsString, Length } from 'class-validator';
+import { IsEmail, IsString, Length, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class VerifyOtpDto {
-  @ApiProperty({ example: 'user@example.com' })
-  @IsEmail()
-  email: string;
-
-  @ApiProperty({ example: '123456', description: '6-digit OTP code' })
+  @ApiProperty({ example: '12345', description: '5-digit OTP code' })
   @IsString()
-  @Length(6, 6)
+  @Length(5, 5)
+  @Matches(/^\d{5}$/, { message: 'OTP must be exactly 5 digits' })
   otp: string;
 }
 

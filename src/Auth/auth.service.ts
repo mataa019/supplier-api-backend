@@ -186,7 +186,6 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, ipAddress?: string) {
-    // Find user
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: { supplier: true },
