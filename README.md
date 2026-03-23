@@ -31,6 +31,21 @@
 $ npm install
 ```
 
+## Environment variables
+
+Create a `.env` file in the project root with SMTP settings for OTP emails:
+
+```env
+SMTP_HOST=smtp.mailtrap.io
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_smtp_username
+SMTP_PASS=your_smtp_password
+MAIL_FROM="Minet Supplier Portal <no-reply@yourdomain.com>"
+JWT_SECRET=your_jwt_secret
+DATABASE_URL="mysql://user:password@localhost:3306/supplier_portal"
+```
+
 ## Compile and run the project
 
 ```bash

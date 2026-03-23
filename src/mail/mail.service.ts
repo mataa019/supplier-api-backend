@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer, { type Transporter } from 'nodemailer';
 
 @Injectable()
-export class MailService {
+export class MailService implements OnModuleInit {
+  private readonly logger = new Logger(MailService.name);
   private transporter: Transporter;
   private fromEmail: string;
 
@@ -34,6 +35,16 @@ export class MailService {
         pass,
       },
     });
+  }
+
+  async onModuleInit() {
+    try {
+      await this.transporter.verify();
+      this.logger.log('SMTP connection verified successfully');
+    } catch (error) {
+      this.logger.error('SMTP connection verification failed', error as any);
+      throw new Error('Unable to connect to SMTP server. Check SMTP_* environment variables.');
+    }
   }
 
   async sendOtp(email: string, otp: string) {
