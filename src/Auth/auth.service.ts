@@ -84,6 +84,7 @@ export class AuthService {
             email: dto.email,
             contactPerson: dto.companyName,
             address: '',
+            status: 'active',
           },
         },
       },
