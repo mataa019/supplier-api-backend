@@ -75,6 +75,20 @@ export class SupplierApplicationController {
 		);
 	}
 
+	@Post(':applicationId/withdraw')
+	@ApiProtectedEndpoint('Withdraw application', 'Application withdrawn')
+	async withdrawApplication(
+		@Request() req: { user: JwtUser },
+		@Param('applicationId') applicationId: string,
+		@Body() dto: WithdrawApplicationDto,
+	) {
+		return this.supplierApplicationService.withdrawApplication(
+			req.user.id,
+			applicationId,
+			dto,
+		);
+	}
+
 
 	@Get(':applicationId')
 	@ApiProtectedEndpoint('Get application', 'Returns application details')

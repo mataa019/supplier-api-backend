@@ -11,6 +11,7 @@ import {
 	SubmitApplicationDto,
 	SupplierApplicationsQueryDto,
 	UpdateApplicationDto,
+	WithdrawApplicationDto,
 } from './dto/application.dto';
 
 @Injectable()
@@ -198,6 +199,47 @@ export class SupplierApplicationService {
 			actor: log.user,
 			createdAt: log.createdAt,
 		}));
+	}
+
+	async withdrawApplication(
+		userId: string,
+		applicationId: string,
+		dto: WithdrawApplicationDto,
+	) {
+		const application = await this.getOwnedApplication(userId, applicationId);
+		const actor = await this.getUserAuditContext(userId);
+
+		if (!['submitted', 'under_review'].includes(application.status)) {
+			throw new BadRequestException(
+				'Only submitted or under review applications can be withdrawn',
+			);
+		}
+
+		const updated = await this.prisma.application.update({
+			where: { id: applicationId },
+			data: {
+				status: 'withdrawn',
+				remarks: dto.reason.trim(),
+				reviewedAt: new Date(),
+				reviewedBy: userId,
+			},
+			include: this.applicationInclude(),
+		});
+
+		await this.auditService.log({
+			userId,
+			action: AuditAction.WITHDRAW_APPLICATION,
+			entity: AuditEntity.APPLICATION,
+			entityId: updated.id,
+			details: {
+				status: updated.status,
+				reason: dto.reason,
+				createdByRole: actor.role,
+				createdByEmail: actor.email,
+			},
+		});
+
+		return updated;
 	}
 
 	private async getSupplierByUserId(userId: string) {
