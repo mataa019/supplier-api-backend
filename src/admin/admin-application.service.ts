@@ -211,7 +211,7 @@ export class AdminApplicationService {
 		const updated = await this.prisma.application.update({
 			where: { id: applicationId },
 			data: {
-				status: 'withdrawn',
+				status: 'withdrawn' as any,
 				reviewedAt: new Date(),
 				reviewedBy: reviewerId,
 				remarks: dto.reason.trim(),
