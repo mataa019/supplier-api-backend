@@ -41,6 +41,12 @@ export class AdminApplicationController {
 		return this.adminApplicationService.getApplication(applicationId);
 	}
 
+	@Get(':applicationId/documents')
+	@ApiAdminEndpoint('View application documents', 'Returns all application documents')
+	async getApplicationDocuments(@Param('applicationId') applicationId: string) {
+		return this.adminApplicationService.getApplicationDocuments(applicationId);
+	}
+
 	@Patch(':applicationId/under-review')
 	@ApiAdminEndpoint('Mark under review', 'Application marked as under review')
 	async markUnderReview(

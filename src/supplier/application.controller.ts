@@ -111,6 +111,18 @@ export class SupplierApplicationController {
 		);
 	}
 
+	@Get(':applicationId/documents')
+	@ApiProtectedEndpoint('List application documents', 'Returns uploaded documents')
+	async listApplicationDocuments(
+		@Request() req: { user: JwtUser },
+		@Param('applicationId') applicationId: string,
+	) {
+		return this.supplierApplicationService.listApplicationDocuments(
+			req.user.id,
+			applicationId,
+		);
+	}
+
 
 	@Get(':applicationId')
 	@ApiProtectedEndpoint('Get application', 'Returns application details')

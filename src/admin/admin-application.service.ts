@@ -68,6 +68,15 @@ export class AdminApplicationService {
 		return application;
 	}
 
+	async getApplicationDocuments(applicationId: string) {
+		await this.ensureApplicationExists(applicationId);
+
+		return this.prisma.document.findMany({
+			where: { applicationId },
+			orderBy: { uploadedAt: 'desc' },
+		});
+	}
+
 	async markUnderReview(
 		applicationId: string,
 		reviewerId: string,
