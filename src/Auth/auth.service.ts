@@ -74,7 +74,7 @@ export class AuthService {
         email: dto.email,
         password: hashedPassword,
         role: 'supplier',
-        status: 'active',
+        status: 'inactive',
         supplier: {
           create: {
             companyName: dto.companyName,
@@ -152,7 +152,7 @@ export class AuthService {
         email: dto.email,
         password: hashedPassword,
         role: 'admin',
-        status: 'active',
+        status: 'inactive',
       },
     });
 
@@ -331,7 +331,7 @@ export class AuthService {
       }),
       this.prisma.user.update({
         where: { id: user.id },
-        data: { emailVerified: true },
+        data: { emailVerified: true, status: 'active' },
       }),
     ]);
 
