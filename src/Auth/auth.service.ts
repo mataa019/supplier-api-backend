@@ -156,8 +156,17 @@ export class AuthService {
       },
     });
 
-    // Generate token
-    const token = this.generateToken(user.id, user.email, user.role);
+    const otp = this.generateOtp();
+    await this.prisma.otp.create({
+      data: {
+        userId: user.id,
+        code: otp,
+        type: 'email_verification',
+        expiresAt: this.getOtpExpiry(),
+      },
+    });
+
+    await this.mailService.sendOtp(user.email, otp);
 
     // Audit: admin registration
     await this.auditService.log({
@@ -175,13 +184,12 @@ export class AuthService {
     });
 
     return {
-      message: 'Admin registration successful',
+      message: 'Admin registration successful. Please verify your email with the OTP sent.',
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
       },
-      accessToken: token,
     };
   }
 
@@ -217,6 +225,10 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
     if (!isPasswordValid) {
       return failLogin('Invalid password');
+    }
+
+    if (!user.emailVerified) {
+      return failLogin('Email not verified', 'Please verify your email with OTP before logging in');
     }
 
     // Check if user is active
