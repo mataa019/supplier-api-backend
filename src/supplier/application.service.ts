@@ -3,7 +3,7 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, unlink, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -300,6 +300,105 @@ export class SupplierApplicationService {
 		});
 
 		return created;
+	}
+
+	async listApplicationDocuments(userId: string, applicationId: string) {
+		await this.getOwnedApplication(userId, applicationId);
+
+		return this.prisma.document.findMany({
+			where: { applicationId },
+			orderBy: { uploadedAt: 'desc' },
+		});
+	}
+
+	async getDocumentForDownload(userId: string, role: string, documentId: string) {
+		const document = await this.prisma.document.findUnique({
+			where: { id: documentId },
+			include: {
+				application: {
+					select: {
+						id: true,
+						supplier: {
+							select: { userId: true },
+						},
+					},
+				},
+			},
+		});
+
+		if (!document) {
+			throw new NotFoundException('Document not found');
+		}
+
+		if (role === 'supplier' && document.application.supplier.userId !== userId) {
+			throw new NotFoundException('Document not found');
+		}
+
+		const absolutePath = join(process.cwd(), document.filePath);
+
+		try {
+			await access(absolutePath);
+		} catch {
+			throw new NotFoundException('Document file not found');
+		}
+
+		return {
+			fileName: document.fileName,
+			absolutePath,
+		};
+	}
+
+	async deleteDocument(userId: string, documentId: string) {
+		const actor = await this.getUserAuditContext(userId);
+		const document = await this.prisma.document.findUnique({
+			where: { id: documentId },
+			include: {
+				application: {
+					select: {
+						id: true,
+						status: true,
+						supplier: {
+							select: { userId: true },
+						},
+					},
+				},
+			},
+		});
+
+		if (!document || document.application.supplier.userId !== userId) {
+			throw new NotFoundException('Document not found');
+		}
+
+		if (!['draft', 'submitted', 'under_review'].includes(document.application.status)) {
+			throw new BadRequestException(
+				'Documents can only be deleted for draft, submitted, or under review applications',
+			);
+		}
+
+		await this.prisma.document.delete({ where: { id: documentId } });
+
+		const absolutePath = join(process.cwd(), document.filePath);
+		try {
+			await unlink(absolutePath);
+		} catch {
+			// ignore missing or locked file cleanup failures
+		}
+
+		await this.auditService.log({
+			userId,
+			action: AuditAction.DELETE_DOCUMENT,
+			entity: AuditEntity.DOCUMENT,
+			entityId: documentId,
+			details: {
+				applicationId: document.application.id,
+				type: document.type,
+				fileName: document.fileName,
+				createdByRole: actor.role,
+				createdByEmail: actor.email,
+			},
+		});
+
+		return { message: 'Document deleted successfully' };
 	}
 
 	private async getSupplierByUserId(userId: string) {
