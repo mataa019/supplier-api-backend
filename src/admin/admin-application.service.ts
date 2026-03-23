@@ -6,6 +6,7 @@ import {
 	AdminApplicationsQueryDto,
 	RejectApplicationDto,
 	ReviewApplicationDto,
+	WithdrawApplicationDto,
 } from '../supplier/dto/application.dto';
 
 @Injectable()
@@ -184,6 +185,48 @@ export class AdminApplicationService {
 			details: {
 				status: updated.status,
 				remarks: dto.remarks,
+				createdByRole: reviewerRole,
+				createdByEmail: reviewerEmail,
+			},
+		});
+
+		return updated;
+	}
+
+	async withdrawApplication(
+		applicationId: string,
+		reviewerId: string,
+		reviewerRole: string,
+		reviewerEmail: string,
+		dto: WithdrawApplicationDto,
+	) {
+		const application = await this.ensureApplicationExists(applicationId);
+
+		if (!['submitted', 'under_review'].includes(application.status)) {
+			throw new BadRequestException(
+				'Only submitted or under review applications can be withdrawn',
+			);
+		}
+
+		const updated = await this.prisma.application.update({
+			where: { id: applicationId },
+			data: {
+				status: 'withdrawn',
+				reviewedAt: new Date(),
+				reviewedBy: reviewerId,
+				remarks: dto.reason.trim(),
+			},
+			include: this.applicationInclude(),
+		});
+
+		await this.auditService.log({
+			userId: reviewerId,
+			action: AuditAction.WITHDRAW_APPLICATION,
+			entity: AuditEntity.APPLICATION,
+			entityId: updated.id,
+			details: {
+				status: updated.status,
+				reason: dto.reason,
 				createdByRole: reviewerRole,
 				createdByEmail: reviewerEmail,
 			},

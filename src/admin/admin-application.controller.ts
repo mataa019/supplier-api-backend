@@ -17,6 +17,7 @@ import {
 	AdminApplicationsQueryDto,
 	RejectApplicationDto,
 	ReviewApplicationDto,
+	WithdrawApplicationDto,
 } from '../supplier/dto/application.dto';
 import { AdminApplicationService } from './admin-application.service';
 
@@ -80,6 +81,22 @@ export class AdminApplicationController {
 		@Body() dto: RejectApplicationDto,
 	) {
 		return this.adminApplicationService.rejectApplication(
+			applicationId,
+			req.user.id,
+			req.user.role,
+			req.user.email,
+			dto,
+		);
+	}
+
+	@Patch(':applicationId/withdraw')
+	@ApiAdminEndpoint('Withdraw application', 'Application withdrawn')
+	async withdrawApplication(
+		@Request() req: { user: JwtUser },
+		@Param('applicationId') applicationId: string,
+		@Body() dto: WithdrawApplicationDto,
+	) {
+		return this.adminApplicationService.withdrawApplication(
 			applicationId,
 			req.user.id,
 			req.user.role,

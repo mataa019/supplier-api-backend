@@ -277,6 +277,7 @@ Binary file download (PDF or DOC/DOCX)
 | PATCH | `/admin/applications/:applicationId/under-review` | admin/manager | Mark as under review |
 | PATCH | `/admin/applications/:applicationId/approve` | admin/manager | Approve application |
 | PATCH | `/admin/applications/:applicationId/reject` | admin/manager | Reject application |
+| PATCH | `/admin/applications/:applicationId/withdraw` | admin/manager | Withdraw application |
 
 ### Body: POST `/applications`
 ```json
@@ -335,6 +336,13 @@ Binary file download (PDF or DOC/DOCX)
 ```json
 {
   "remarks": "string (required)"
+}
+```
+
+### Body: PATCH `/admin/applications/:applicationId/withdraw`
+```json
+{
+  "reason": "string (required)"
 }
 ```
 
