@@ -62,7 +62,7 @@ export class AuthController {
   @Get('profile')
   @ApiProtectedEndpoint('Get current user profile', 'Returns user profile')
   async getProfile(@Request() req: { user: JwtUser }) {
-    return req.user;
+    return this.authService.getProfile(req.user.id);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)

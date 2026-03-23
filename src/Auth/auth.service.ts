@@ -34,6 +34,27 @@ export class AuthService {
     return new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
   }
 
+  private async generateUniqueOtpCode(): Promise<string> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = this.generateOtp();
+      const existing = await this.prisma.otp.findFirst({
+        where: {
+          code,
+          type: 'email_verification',
+          used: false,
+          expiresAt: { gte: new Date() },
+        },
+        select: { id: true },
+      });
+
+      if (!existing) {
+        return code;
+      }
+    }
+
+    throw new BadRequestException('Unable to generate OTP at the moment. Please try again.');
+  }
+
   async register(dto: RegisterDto, ipAddress?: string) {
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
@@ -94,7 +115,7 @@ export class AuthService {
     });
 
     // Generate and store OTP
-    const otp = this.generateOtp();
+    const otp = await this.generateUniqueOtpCode();
     await this.prisma.otp.create({
       data: {
         userId: user.id,
@@ -157,7 +178,7 @@ export class AuthService {
       },
     });
 
-    const otp = this.generateOtp();
+    const otp = await this.generateUniqueOtpCode();
     await this.prisma.otp.create({
       data: {
         userId: user.id,
@@ -228,18 +249,32 @@ export class AuthService {
       return failLogin('Invalid password');
     }
 
-    if (!user.emailVerified) {
-      return failLogin('Email not verified', 'Please verify your email with OTP before logging in');
-    }
-
     // Check if user is active
-    if (user.status !== 'active') {
+    if (user.status !== 'active' && user.emailVerified) {
       return failLogin('Account inactive', 'Account is inactive');
     }
-    // Generate token
-    const token = this.generateToken(user.id, user.email, user.role);
 
-    // Audit: successful login
+    await this.prisma.otp.updateMany({
+      where: {
+        userId: user.id,
+        type: 'email_verification',
+        used: false,
+      },
+      data: { used: true },
+    });
+
+    const otp = await this.generateUniqueOtpCode();
+    await this.prisma.otp.create({
+      data: {
+        userId: user.id,
+        code: otp,
+        type: 'email_verification',
+        expiresAt: this.getOtpExpiry(),
+      },
+    });
+
+    await this.mailService.sendOtp(user.email, otp);
+
     await this.auditService.log({
       userId: user.id,
       action: AuditAction.LOGIN,
@@ -247,7 +282,7 @@ export class AuthService {
       entityId: user.id,
       details: {
         email: user.email,
-        role: user.role,
+        action: 'login_otp_sent',
         createdByRole: user.role,
         createdByEmail: user.email,
       },
@@ -255,12 +290,11 @@ export class AuthService {
     });
 
     return {
-      message: 'Login successful',
+      message: 'OTP sent to your email. Verify OTP to complete login.',
       user: {
         id: user.id,
         role: user.role,
       },
-      accessToken: token,
     };
   }
 
@@ -308,33 +342,27 @@ export class AuthService {
 
     const user = otpRecord.user;
 
-    if (user.emailVerified) {
-      await this.auditService.log({
-        userId: user.id,
-        action: AuditAction.LOGIN_FAILED,
-        entity: AuditEntity.USER,
-        entityId: user.id,
-        details: {
-          reason: 'Email already verified',
-          createdByRole: user.role,
-          createdByEmail: user.email,
-        },
-        ipAddress,
-      });
-      throw new BadRequestException('Email already verified');
+    if (user.status !== 'active' && user.emailVerified) {
+      throw new BadRequestException('Account is inactive');
     }
 
-    // Mark OTP as used and verify email
-    await this.prisma.$transaction([
-      this.prisma.otp.update({
+    if (!user.emailVerified || user.status !== 'active') {
+      await this.prisma.$transaction([
+        this.prisma.otp.update({
+          where: { id: otpRecord.id },
+          data: { used: true },
+        }),
+        this.prisma.user.update({
+          where: { id: user.id },
+          data: { emailVerified: true, status: 'active' },
+        }),
+      ]);
+    } else {
+      await this.prisma.otp.update({
         where: { id: otpRecord.id },
         data: { used: true },
-      }),
-      this.prisma.user.update({
-        where: { id: user.id },
-        data: { emailVerified: true, status: 'active' },
-      }),
-    ]);
+      });
+    }
 
     // Generate token after successful verification
     const token = this.generateToken(user.id, user.email, user.role);
@@ -418,6 +446,28 @@ export class AuthService {
     return {
       message: 'OTP sent successfully',
     };
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        supplier: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
   }
 }
 
