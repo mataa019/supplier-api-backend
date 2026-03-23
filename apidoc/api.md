@@ -36,7 +36,10 @@
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/auth/register` | None | Register new supplier |
+| POST | `/auth/register/admin` | None | Register new admin |
 | POST | `/auth/login` | None | Login |
+| POST | `/auth/verify-otp` | None | Verify OTP (5 digits) |
+| POST | `/auth/resend-otp` | None | Resend OTP |
 | POST | `/auth/refresh` | None | Refresh access token |
 | POST | `/auth/logout` | Any | Invalidate refresh token |
 | POST | `/auth/forgot-password` | None | Send reset link to email |
@@ -62,6 +65,20 @@
 {
   "email": "string",
   "password": "string"
+}
+```
+
+### Body: POST `/auth/verify-otp`
+```json
+{
+  "otp": "12345"
+}
+```
+
+### Body: POST `/auth/resend-otp`
+```json
+{
+  "email": "string"
 }
 ```
 

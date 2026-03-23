@@ -27,7 +27,7 @@ export class AuthService {
   ) {}
 
   private generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return Math.floor(10000 + Math.random() * 90000).toString();
   }
 
   private getOtpExpiry(): Date {
@@ -262,44 +262,53 @@ export class AuthService {
   }
 
   async verifyOtp(dto: VerifyOtpDto, ipAddress?: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-      include: { supplier: true },
-    });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (user.emailVerified) {
-      throw new BadRequestException('Email already verified');
-    }
-
-    // Find valid OTP
     const otpRecord = await this.prisma.otp.findFirst({
       where: {
-        userId: user.id,
         code: dto.otp,
         type: 'email_verification',
         used: false,
         expiresAt: { gte: new Date() },
       },
+      include: {
+        user: {
+          include: {
+            supplier: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!otpRecord) {
+      await this.auditService.log({
+        action: AuditAction.LOGIN_FAILED,
+        entity: AuditEntity.USER,
+        details: {
+          reason: 'Invalid or expired OTP',
+          createdByRole: null,
+          createdByEmail: null,
+        },
+        ipAddress,
+      });
+      throw new BadRequestException('Invalid or expired OTP');
+    }
+
+    const user = otpRecord.user;
+
+    if (user.emailVerified) {
       await this.auditService.log({
         userId: user.id,
         action: AuditAction.LOGIN_FAILED,
         entity: AuditEntity.USER,
         entityId: user.id,
         details: {
-          reason: 'Invalid or expired OTP',
+          reason: 'Email already verified',
           createdByRole: user.role,
           createdByEmail: user.email,
         },
         ipAddress,
       });
-      throw new BadRequestException('Invalid or expired OTP');
+      throw new BadRequestException('Email already verified');
     }
 
     // Mark OTP as used and verify email
