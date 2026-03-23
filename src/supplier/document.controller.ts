@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { createReadStream } from 'node:fs';
 import { JwtUser } from '../Auth/jwt/types';
 import { Roles, RolesGuard } from '../Auth/jwt/roles';
