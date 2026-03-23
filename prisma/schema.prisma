@@ -75,7 +75,7 @@ model Supplier {
   phone              String
   email              String
   address            String
-  status             SupplierStatus  @default(pending)
+  status             SupplierStatus  @default(active)
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   applications       Application[]
