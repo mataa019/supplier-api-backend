@@ -32,6 +32,37 @@ export class WithdrawApplicationDto {
   reason: string;
 }
 
+export class UploadApplicationDocumentDto {
+  @ApiProperty({
+    enum: [
+      'business_registration',
+      'tax_certificate',
+      'bank_letter',
+      'insurance',
+      'other',
+    ],
+  })
+  @IsString()
+  @IsIn([
+    'business_registration',
+    'tax_certificate',
+    'bank_letter',
+    'insurance',
+    'other',
+  ])
+  type:
+    | 'business_registration'
+    | 'tax_certificate'
+    | 'bank_letter'
+    | 'insurance'
+    | 'other';
+
+  @ApiPropertyOptional({ example: 'Updated tax certificate' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
 export class ReviewApplicationDto {
   @ApiPropertyOptional({ example: 'Documents are complete' })
   @IsOptional()

@@ -3,11 +3,15 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { extname, join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction, AuditEntity } from '../audit/audit.types';
 import {
 	CreateApplicationDto,
+	UploadApplicationDocumentDto,
 	SubmitApplicationDto,
 	SupplierApplicationsQueryDto,
 	UpdateApplicationDto,
@@ -242,6 +246,62 @@ export class SupplierApplicationService {
 		return updated;
 	}
 
+	async uploadApplicationDocument(
+		userId: string,
+		applicationId: string,
+		dto: UploadApplicationDocumentDto,
+		file: any,
+	) {
+		const application = await this.getOwnedApplication(userId, applicationId);
+		const actor = await this.getUserAuditContext(userId);
+
+		if (!file) {
+			throw new BadRequestException('Document file is required');
+		}
+
+		if (!['draft', 'submitted', 'under_review'].includes(application.status)) {
+			throw new BadRequestException(
+				'Documents can only be uploaded for draft, submitted, or under review applications',
+			);
+		}
+
+		const extension = this.resolveDocumentExtension(file);
+		const relativeDirectory = join('uploads', 'application-documents');
+		const absoluteDirectory = join(process.cwd(), relativeDirectory);
+		await mkdir(absoluteDirectory, { recursive: true });
+
+		const storedFileName = `${randomUUID()}${extension}`;
+		const relativePath = join(relativeDirectory, storedFileName);
+		const absolutePath = join(process.cwd(), relativePath);
+		await writeFile(absolutePath, file.buffer);
+
+		const created = await this.prisma.document.create({
+			data: {
+				applicationId,
+				type: dto.type,
+				fileName: file.originalname || storedFileName,
+				filePath: relativePath,
+			},
+		});
+
+		await this.auditService.log({
+			userId,
+			action: AuditAction.UPLOAD_DOCUMENT,
+			entity: AuditEntity.DOCUMENT,
+			entityId: created.id,
+			details: {
+				applicationId,
+				type: created.type,
+				fileName: created.fileName,
+				description: dto.description ?? null,
+				createdByRole: actor.role,
+				createdByEmail: actor.email,
+			},
+		});
+
+		return created;
+	}
+
 	private async getSupplierByUserId(userId: string) {
 		const supplier = await this.prisma.supplier.findUnique({
 			where: { userId },
@@ -327,5 +387,29 @@ export class SupplierApplicationService {
 		} catch {
 			return details;
 		}
+	}
+
+	private resolveDocumentExtension(file: any) {
+		const mimeToExt: Record<string, string> = {
+			'application/pdf': '.pdf',
+			'application/msword': '.doc',
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+				'.docx',
+			'image/jpeg': '.jpg',
+			'image/png': '.png',
+		};
+
+		if (file?.mimetype && mimeToExt[file.mimetype]) {
+			return mimeToExt[file.mimetype];
+		}
+
+		const extension = extname(file?.originalname || '').toLowerCase();
+		if (['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'].includes(extension)) {
+			return extension === '.jpeg' ? '.jpg' : extension;
+		}
+
+		throw new BadRequestException(
+			'Unsupported file type. Allowed: pdf, doc, docx, jpg, png',
+		);
 	}
 }

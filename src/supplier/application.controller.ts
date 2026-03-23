@@ -7,10 +7,13 @@ import {
 	Post,
 	Query,
 	Request,
+	UploadedFile,
 	UseGuards,
+	UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtUser } from '../Auth/jwt/types';
 import { Roles, RolesGuard } from '../Auth/jwt/roles';
 import { ApiProtectedEndpoint } from '../common/decorators';
@@ -18,6 +21,7 @@ import {
 	CreateApplicationDto,
 	SubmitApplicationDto,
 	SupplierApplicationsQueryDto,
+	UploadApplicationDocumentDto,
 	UpdateApplicationDto,
 	WithdrawApplicationDto,
 } from './dto/application.dto';
@@ -86,6 +90,24 @@ export class SupplierApplicationController {
 			req.user.id,
 			applicationId,
 			dto,
+		);
+	}
+
+	@Post(':applicationId/documents')
+	@UseInterceptors(FileInterceptor('file'))
+	@ApiConsumes('multipart/form-data')
+	@ApiProtectedEndpoint('Upload application document', 'Document uploaded')
+	async uploadApplicationDocument(
+		@Request() req: { user: JwtUser },
+		@Param('applicationId') applicationId: string,
+		@Body() dto: UploadApplicationDocumentDto,
+		@UploadedFile() file: any,
+	) {
+		return this.supplierApplicationService.uploadApplicationDocument(
+			req.user.id,
+			applicationId,
+			dto,
+			file,
 		);
 	}
 
