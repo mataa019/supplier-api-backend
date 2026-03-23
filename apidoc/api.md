@@ -13,7 +13,7 @@
 |--------|--------|
 | Application | `draft`, `submitted`, `under_review`, `approved`, `rejected`, `withdrawn` |
 | Payment | `pending`, `verified`, `rejected` |
-| Supplier | `pending`, `active`, `suspended` |
+| Supplier | `active`, `suspended` |
 | Admin User | `active`, `inactive` |
 | Document | `pending`, `verified`, `rejected` |
 | Payment Method | `bank_transfer`, `mobile_money`, `card` |
@@ -205,7 +205,7 @@
 
 ### Query: GET `/admin/suppliers`
 ```
-?status=pending|active|suspended
+?status=active|suspended
 &categoryId=string
 &search=string
 &page=1
@@ -215,7 +215,7 @@
 ### Body: PATCH `/admin/suppliers/:supplierId/status`
 ```json
 {
-  "status": "pending | active | suspended",
+  "status": "active | suspended",
   "reason": "string (optional)"
 }
 ```
