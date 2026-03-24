@@ -1,3 +1,4 @@
+import { DocumentType } from '@prisma/client';
 import {
 	BadRequestException,
 	Injectable,
@@ -256,10 +257,14 @@ export class SupplierApplicationService {
 			const absolutePath = join(process.cwd(), relativePath);
 			await writeFile(absolutePath, file.buffer);
 
+			// Validate and cast docMeta.type to DocumentType
+			if (!Object.values(DocumentType).includes(docMeta.type as DocumentType)) {
+				throw new BadRequestException(`Invalid document type: ${docMeta.type}`);
+			}
 			const created = await this.prisma.document.create({
 				data: {
 					applicationId,
-					type: docMeta.type,
+					type: docMeta.type as DocumentType,
 					fileName: file.originalname || storedFileName,
 					filePath: relativePath,
 				},
