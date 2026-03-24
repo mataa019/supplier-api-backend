@@ -1,4 +1,4 @@
-import { DocumentType } from '@prisma/client';
+import { DocumentType, Document as PrismaDocument } from '@prisma/client';
 import {
 	BadRequestException,
 	Injectable,
@@ -247,7 +247,7 @@ export class SupplierApplicationService {
 		const absoluteDirectory = join(process.cwd(), relativeDirectory);
 		await mkdir(absoluteDirectory, { recursive: true });
 
-		const createdDocs = [];
+			   const createdDocs: PrismaDocument[] = [];
 		for (let i = 0; i < files.length; i++) {
 			const file = files[i];
 			const docMeta = documents[i];
@@ -284,7 +284,7 @@ export class SupplierApplicationService {
 					createdByEmail: actor.email,
 				},
 			});
-			createdDocs.push(created);
+			   createdDocs.push(created);
 		}
 		return createdDocs;
 	}
