@@ -8,6 +8,7 @@ import {
 	Query,
 	Request,
 	UploadedFile,
+	UploadedFiles,
 	UseGuards,
 	UseInterceptors,
 } from '@nestjs/common';
