@@ -16,7 +16,7 @@ model Audit {
   action    String       // e.g. "LOGIN", "REGISTER", "UPDATE_APPLICATION"
   entity    String?      // e.g. "User", "Application", "Payment"
   entityId  String?      // ID of the affected record
-  details   String?      // JSON or free-text with extra context
+  details   String?   @db.Text   // JSON or free-text with extra context, now supports large content
   ipAddress String?      // client IP for security audits
   createdAt DateTime @default(now())
 }
