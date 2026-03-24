@@ -12,8 +12,8 @@ import {
 	UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { JwtUser } from '../Auth/jwt/types';
 import { Roles, RolesGuard } from '../Auth/jwt/roles';
 import { ApiProtectedEndpoint } from '../common/decorators';
@@ -53,18 +53,6 @@ export class SupplierApplicationController {
 		return this.supplierApplicationService.listMyApplications(req.user.id, query);
 	}
 
-	@Get(':applicationId/timeline')
-	@ApiProtectedEndpoint('Application timeline', 'Returns application status history')
-	async getApplicationTimeline(
-		@Request() req: { user: JwtUser },
-		@Param('applicationId') applicationId: string,
-	) {
-		return this.supplierApplicationService.getApplicationTimeline(
-			req.user.id,
-			applicationId,
-		);
-	}
-
 	@Post(':applicationId/submit')
 	@ApiProtectedEndpoint('Submit application', 'Application submitted')
 	async submitApplication(
@@ -94,20 +82,39 @@ export class SupplierApplicationController {
 	}
 
 	@Post(':applicationId/documents')
-	@UseInterceptors(FileInterceptor('file'))
+	@UseInterceptors(FilesInterceptor('files'))
 	@ApiConsumes('multipart/form-data')
-	@ApiProtectedEndpoint('Upload application document', 'Document uploaded')
-	async uploadApplicationDocument(
+	@ApiProtectedEndpoint('Upload application documents', 'Documents uploaded')
+	@ApiBody({
+		schema: {
+			type: 'object',
+			properties: {
+				documents: {
+					type: 'string',
+					description: 'JSON stringified array of document metadata (type, description)',
+					example: '[{"type":"tax_certificate","description":"Updated tax certificate"}]',
+				},
+				files: {
+					type: 'array',
+					items: { type: 'string', format: 'binary' },
+				},
+			},
+			required: ['documents', 'files'],
+		},
+	})
+	async uploadApplicationDocuments(
 		@Request() req: { user: JwtUser },
 		@Param('applicationId') applicationId: string,
-		@Body() dto: UploadApplicationDocumentDto,
-		@UploadedFile() file: any,
+		@Body() body: any,
+		@UploadedFiles() files: any[],
 	) {
-		return this.supplierApplicationService.uploadApplicationDocument(
+		// Parse documents metadata from body
+		const documents = JSON.parse(body.documents);
+		return this.supplierApplicationService.uploadApplicationDocuments(
 			req.user.id,
 			applicationId,
-			dto,
-			file,
+			documents,
+			files,
 		);
 	}
 

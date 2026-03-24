@@ -32,7 +32,7 @@ export class WithdrawApplicationDto {
   reason: string;
 }
 
-export class UploadApplicationDocumentDto {
+export class UploadApplicationDocumentItemDto {
   @ApiProperty({
     enum: [
       'business_registration',
@@ -61,6 +61,12 @@ export class UploadApplicationDocumentDto {
   @IsOptional()
   @IsString()
   description?: string;
+}
+
+export class UploadApplicationDocumentDto {
+  @ApiProperty({ type: [UploadApplicationDocumentItemDto] })
+  @IsNotEmpty()
+  documents: UploadApplicationDocumentItemDto[];
 }
 
 export class ReviewApplicationDto {

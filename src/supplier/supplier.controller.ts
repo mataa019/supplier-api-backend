@@ -54,11 +54,6 @@ export class SupplierController {
 		return res.download(file.absolutePath, file.fileName);
 	}
 
-	@Get('me')
-	@ApiProtectedEndpoint('Get own supplier profile', 'Returns own supplier profile')
-	async getOwnProfile(@Request() req: { user: JwtUser }) {
-		return this.supplierService.getOwnProfile(req.user.id);
-	}
 
 	@Patch('me')
 	@ApiProtectedEndpoint('Update own supplier profile', 'Supplier profile updated')

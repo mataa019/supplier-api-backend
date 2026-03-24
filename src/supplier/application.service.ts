@@ -178,33 +178,7 @@ export class SupplierApplicationService {
 		return updated;
 	}
 
-	async getApplicationTimeline(userId: string, applicationId: string) {
-		await this.getOwnedApplication(userId, applicationId);
-
-		const logs = await this.prisma.audit.findMany({
-			where: {
-				entity: AuditEntity.APPLICATION,
-				entityId: applicationId,
-			},
-			orderBy: { createdAt: 'asc' },
-			include: {
-				user: {
-					select: { id: true, email: true, role: true },
-				},
-			},
-		});
-
-		return logs.map((log) => ({
-			id: log.id,
-			action: log.action,
-			entity: log.entity,
-			entityId: log.entityId,
-			details: this.parseDetails(log.details),
-			actor: log.user,
-			createdAt: log.createdAt,
-		}));
-	}
-
+	
 	async withdrawApplication(
 		userId: string,
 		applicationId: string,
@@ -246,17 +220,20 @@ export class SupplierApplicationService {
 		return updated;
 	}
 
-	async uploadApplicationDocument(
+	async uploadApplicationDocuments(
 		userId: string,
 		applicationId: string,
-		dto: UploadApplicationDocumentDto,
-		file: any,
+		documents: { type: string; description?: string }[],
+		files: any[],
 	) {
 		const application = await this.getOwnedApplication(userId, applicationId);
 		const actor = await this.getUserAuditContext(userId);
 
-		if (!file) {
-			throw new BadRequestException('Document file is required');
+		if (!files || !Array.isArray(files) || files.length === 0) {
+			throw new BadRequestException('At least one document file is required');
+		}
+		if (!Array.isArray(documents) || documents.length !== files.length) {
+			throw new BadRequestException('Documents metadata and files count mismatch');
 		}
 
 		if (!['draft', 'submitted', 'under_review'].includes(application.status)) {
@@ -265,41 +242,46 @@ export class SupplierApplicationService {
 			);
 		}
 
-		const extension = this.resolveDocumentExtension(file);
 		const relativeDirectory = join('uploads', 'application-documents');
 		const absoluteDirectory = join(process.cwd(), relativeDirectory);
 		await mkdir(absoluteDirectory, { recursive: true });
 
-		const storedFileName = `${randomUUID()}${extension}`;
-		const relativePath = join(relativeDirectory, storedFileName);
-		const absolutePath = join(process.cwd(), relativePath);
-		await writeFile(absolutePath, file.buffer);
+		const createdDocs = [];
+		for (let i = 0; i < files.length; i++) {
+			const file = files[i];
+			const docMeta = documents[i];
+			const extension = this.resolveDocumentExtension(file);
+			const storedFileName = `${randomUUID()}${extension}`;
+			const relativePath = join(relativeDirectory, storedFileName);
+			const absolutePath = join(process.cwd(), relativePath);
+			await writeFile(absolutePath, file.buffer);
 
-		const created = await this.prisma.document.create({
-			data: {
-				applicationId,
-				type: dto.type,
-				fileName: file.originalname || storedFileName,
-				filePath: relativePath,
-			},
-		});
+			const created = await this.prisma.document.create({
+				data: {
+					applicationId,
+					type: docMeta.type,
+					fileName: file.originalname || storedFileName,
+					filePath: relativePath,
+				},
+			});
 
-		await this.auditService.log({
-			userId,
-			action: AuditAction.UPLOAD_DOCUMENT,
-			entity: AuditEntity.DOCUMENT,
-			entityId: created.id,
-			details: {
-				applicationId,
-				type: created.type,
-				fileName: created.fileName,
-				description: dto.description ?? null,
-				createdByRole: actor.role,
-				createdByEmail: actor.email,
-			},
-		});
-
-		return created;
+			await this.auditService.log({
+				userId,
+				action: AuditAction.UPLOAD_DOCUMENT,
+				entity: AuditEntity.DOCUMENT,
+				entityId: created.id,
+				details: {
+					applicationId,
+					type: created.type,
+					fileName: created.fileName,
+					description: docMeta.description ?? null,
+					createdByRole: actor.role,
+					createdByEmail: actor.email,
+				},
+			});
+			createdDocs.push(created);
+		}
+		return createdDocs;
 	}
 
 	async listApplicationDocuments(userId: string, applicationId: string) {

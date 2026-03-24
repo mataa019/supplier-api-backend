@@ -93,28 +93,7 @@ export class SupplierService {
 		};
 	}
 
-	async getOwnProfile(userId: string) {
-		const supplier = await this.prisma.supplier.findUnique({
-			where: { userId },
-			include: {
-				user: {
-					select: {
-						id: true,
-						email: true,
-						role: true,
-						status: true,
-						emailVerified: true,
-					},
-				},
-			},
-		});
-
-		if (!supplier) {
-			throw new NotFoundException('Supplier profile not found');
-		}
-
-		return supplier;
-	}
+	
 
 	async updateOwnProfile(userId: string, dto: UpdateOwnSupplierDto) {
 		const existingSupplier = await this.prisma.supplier.findUnique({
