@@ -56,45 +56,26 @@ export class SupplierApplicationService {
 		return application;
 	}
 
-	async listMyApplications(userId: string, query: SupplierApplicationsQueryDto) {
-		const supplier = await this.getSupplierByUserId(userId);
-		const page = query.page ?? 1;
-		const limit = query.limit ?? 10;
-		const skip = (page - 1) * limit;
-
-		const where: Record<string, unknown> = {
-			supplierId: supplier.id,
-		};
-
-		if (query.status) where.status = query.status;
-		if (query.search) {
-			where.OR = [
-				{ category: { name: { contains: query.search } } },
-				{ remarks: { contains: query.search } },
-			];
-		}
-
-		const [data, total] = await Promise.all([
-			this.prisma.application.findMany({
-				where,
-				include: this.applicationInclude(),
-				orderBy: { createdAt: 'desc' },
-				skip,
-				take: limit,
-			}),
-			this.prisma.application.count({ where }),
-		]);
-
-		return {
-			data,
-			meta: {
-				total,
-				page,
-				limit,
-				totalPages: Math.ceil(total / limit),
-			},
-		};
-	}
+	       async listMyApplications(userId: string) {
+		       const supplier = await this.getSupplierByUserId(userId);
+		       const applications = await this.prisma.application.findMany({
+			       where: { supplierId: supplier.id },
+			       include: this.applicationInclude(),
+			       orderBy: { createdAt: 'desc' },
+		       });
+		       // Only return the applications and their status
+		       return applications.map(app => ({
+			       id: app.id,
+			       status: app.status,
+			       category: app.category,
+			       submittedAt: app.submittedAt,
+			       reviewedAt: app.reviewedAt,
+			       remarks: app.remarks,
+			       createdAt: app.createdAt,
+			       documents: app.documents,
+			       payments: app.payments,
+		       }));
+	       }
 
 	async getApplication(userId: string, applicationId: string) {
 		return this.getOwnedApplication(userId, applicationId);
