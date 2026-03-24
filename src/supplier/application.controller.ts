@@ -48,11 +48,10 @@ export class SupplierApplicationController {
 	@Get('me')
 	@ApiProtectedEndpoint('My applications', 'Returns supplier applications')
 	async listMyApplications(
-		@Request() req: { user: JwtUser },
-		@Query() query: SupplierApplicationsQueryDto,
-	) {
-		return this.supplierApplicationService.listMyApplications(req.user.id, query);
-	}
+		       @Request() req: { user: JwtUser },
+	       ) {
+		       return this.supplierApplicationService.listMyApplications(req.user.id);
+	       }
 
 	@Post(':applicationId/submit')
 	@ApiProtectedEndpoint('Submit application', 'Application submitted')
