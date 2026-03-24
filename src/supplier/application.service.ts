@@ -256,7 +256,6 @@ export class SupplierApplicationService {
 			const relativePath = join(relativeDirectory, storedFileName);
 			const absolutePath = join(process.cwd(), relativePath);
 			await writeFile(absolutePath, file.buffer);
-
 			// Validate and cast docMeta.type to DocumentType
 			if (!Object.values(DocumentType).includes(docMeta.type as DocumentType)) {
 				throw new BadRequestException(`Invalid document type: ${docMeta.type}`);
