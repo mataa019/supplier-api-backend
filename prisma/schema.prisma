@@ -139,11 +139,11 @@ model Document {
 }
 
 enum DocumentType {
+  application_form
   business_registration
   tax_certificate
-  bank_letter
-  insurance
-  other
+  company_profile
+  references
 }
 
 model Payment {
