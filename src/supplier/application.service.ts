@@ -1,3 +1,4 @@
+
 import { DocumentType, Document as PrismaDocument } from '@prisma/client';
 import {
 	BadRequestException,
@@ -12,10 +13,8 @@ import { AuditService } from '../audit/audit.service';
 import { AuditAction, AuditEntity } from '../audit/audit.types';
 import {
 	CreateApplicationDto,
-	UploadApplicationDocumentDto,
 	SubmitApplicationDto,
-	SupplierApplicationsQueryDto,
-	UpdateApplicationDto,
+		UpdateApplicationDto,
 	WithdrawApplicationDto,
 } from './dto/application.dto';
 
@@ -380,7 +379,15 @@ export class SupplierApplicationService {
 
 		return supplier;
 	}
-
+ 	async deleteApplication(userId: string, applicationId: string) {
+		const application = await this.getOwnedApplication(userId, applicationId);
+		if (!['draft', 'withdrawn'].includes(application.status)) {
+			throw new BadRequestException('Only draft or withdrawn applications can be deleted');
+		}
+		await this.prisma.application.delete({ where: { id: applicationId } });
+		return { message: 'Application deleted successfully' };
+	}
+	
 	private async getUserAuditContext(userId: string) {
 		const user = await this.prisma.user.findUnique({
 			where: { id: userId },
