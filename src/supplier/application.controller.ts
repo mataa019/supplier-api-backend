@@ -1,12 +1,4 @@
 import { Delete } from '@nestjs/common';
-	@Delete(':applicationId')
-	@ApiProtectedEndpoint('Delete application', 'Deletes an application if status is draft or withdrawn')
-	async deleteApplication(
-		@Request() req: { user: JwtUser },
-		@Param('applicationId') applicationId: string,
-	) {
-		return this.supplierApplicationService.deleteApplication(req.user.id, applicationId);
-	}
 import {
 	Body,
 	Controller,
@@ -164,5 +156,14 @@ export class SupplierApplicationController {
 			applicationId,
 			dto,
 		);
+	}
+
+	@Delete(':applicationId')
+	@ApiProtectedEndpoint('Delete application', 'Deletes an application if status is draft or withdrawn')
+	async deleteApplication(
+		@Request() req: { user: JwtUser },
+		@Param('applicationId') applicationId: string,
+	) {
+		return this.supplierApplicationService.deleteApplication(req.user.id, applicationId);
 	}
 }
