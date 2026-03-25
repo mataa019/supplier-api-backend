@@ -1,14 +1,43 @@
 -- CreateTable
+CREATE TABLE `Audit` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NULL,
+    `action` VARCHAR(191) NOT NULL,
+    `entity` VARCHAR(191) NULL,
+    `entityId` VARCHAR(191) NULL,
+    `details` VARCHAR(191) NULL,
+    `ipAddress` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `User` (
     `id` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
     `password` VARCHAR(191) NOT NULL,
     `role` ENUM('supplier', 'admin', 'manager') NOT NULL,
     `status` ENUM('active', 'inactive') NOT NULL,
+    `emailVerified` BOOLEAN NOT NULL DEFAULT false,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     UNIQUE INDEX `User_email_key`(`email`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Otp` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `code` VARCHAR(191) NOT NULL,
+    `type` ENUM('email_verification', 'password_reset') NOT NULL DEFAULT 'email_verification',
+    `expiresAt` DATETIME(3) NOT NULL,
+    `used` BOOLEAN NOT NULL DEFAULT false,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    INDEX `Otp_userId_type_idx`(`userId`, `type`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -23,7 +52,7 @@ CREATE TABLE `Supplier` (
     `phone` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
     `address` VARCHAR(191) NOT NULL,
-    `status` ENUM('pending', 'active', 'suspended') NOT NULL DEFAULT 'pending',
+    `status` ENUM('active', 'suspended') NOT NULL DEFAULT 'active',
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -37,7 +66,8 @@ CREATE TABLE `Category` (
     `name` VARCHAR(191) NOT NULL,
     `description` VARCHAR(191) NULL,
     `applicationFee` DOUBLE NOT NULL,
-    `documentTemplate` VARCHAR(191) NOT NULL,
+    `Requirements` VARCHAR(191) NOT NULL,
+    `documentTemplate` VARCHAR(191) NULL,
     `status` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
@@ -49,7 +79,7 @@ CREATE TABLE `Application` (
     `id` VARCHAR(191) NOT NULL,
     `supplierId` VARCHAR(191) NOT NULL,
     `categoryId` VARCHAR(191) NOT NULL,
-    `status` ENUM('draft', 'submitted', 'under_review', 'approved', 'rejected') NOT NULL DEFAULT 'draft',
+    `status` ENUM('draft', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn') NOT NULL DEFAULT 'draft',
     `submittedAt` DATETIME(3) NULL,
     `reviewedAt` DATETIME(3) NULL,
     `reviewedBy` VARCHAR(191) NULL,
@@ -86,6 +116,12 @@ CREATE TABLE `Payment` (
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- AddForeignKey
+ALTER TABLE `Audit` ADD CONSTRAINT `Audit_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Otp` ADD CONSTRAINT `Otp_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Supplier` ADD CONSTRAINT `Supplier_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

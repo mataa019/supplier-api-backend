@@ -56,7 +56,7 @@ export class SupplierApplicationService {
 		return application;
 	}
 
-	       async listMyApplications(userId: string) {
+	async listMyApplications(userId: string) {
 		       const supplier = await this.getSupplierByUserId(userId);
 		       const applications = await this.prisma.application.findMany({
 			       where: { supplierId: supplier.id },
