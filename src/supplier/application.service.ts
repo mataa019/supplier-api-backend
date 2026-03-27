@@ -269,12 +269,19 @@ export class SupplierApplicationService {
 	}
 
 	async listApplicationDocuments(userId: string, applicationId: string) {
-		await this.getOwnedApplication(userId, applicationId);
-
-		return this.prisma.document.findMany({
-			where: { applicationId },
-			orderBy: { uploadedAt: 'desc' },
-		});
+		console.log('[listApplicationDocuments] Request:', { userId, applicationId });
+		try {
+			await this.getOwnedApplication(userId, applicationId);
+			const documents = await this.prisma.document.findMany({
+				where: { applicationId },
+				orderBy: { uploadedAt: 'desc' },
+			});
+			console.log('[listApplicationDocuments] Success:', documents);
+			return documents;
+		} catch (error) {
+			console.error('[listApplicationDocuments] Error:', error.message, error.stack);
+			throw error;
+		}
 	}
 
 	async getDocumentForDownload(userId: string, role: string, documentId: string) {
