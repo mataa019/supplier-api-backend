@@ -407,11 +407,6 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
-    if (user.emailVerified) {
-      throw new BadRequestException('Email already verified');
-    }
-
     // Invalidate previous OTPs
     await this.prisma.otp.updateMany({
       where: {
