@@ -146,16 +146,42 @@ export class SupplierApplicationController {
 
 	@Patch(':applicationId')
 	@ApiProtectedEndpoint('Update application', 'Application draft updated')
+	@ApiBody({
+		description: 'Update application category and documents',
+		type: UpdateApplicationDto,
+		examples: {
+			default: {
+				summary: 'Update category and documents',
+				value: {
+					categoryId: 'new-category-id',
+					documents: ['docId1', 'docId2', 'docId3'],
+				},
+			},
+		},
+	})
 	async updateApplication(
 		@Request() req: { user: JwtUser },
 		@Param('applicationId') applicationId: string,
 		@Body() dto: UpdateApplicationDto,
 	) {
-		return this.supplierApplicationService.updateApplication(
-			req.user.id,
-			applicationId,
-			dto,
-		);
+		console.log('updateApplication Request:', { userId: req.user.id, applicationId, dto });
+		try {
+			const result = await this.supplierApplicationService.updateApplication(
+				req.user.id,
+				applicationId,
+				dto,
+			);
+			console.log('[updateApplication] Success:', result);
+			return {
+				id: result.id,
+				status: result.status,
+				category: result.category,
+				documents: result.documents,
+			};
+		} catch (error) {
+			console.error('[updateApplication] Error:', error.message, error.stack);
+			throw error;
+		}
 	}
 
 	@Delete(':applicationId')

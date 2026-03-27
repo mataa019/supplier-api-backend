@@ -97,7 +97,7 @@ export class SupplierApplicationService {
 			await this.ensureActiveCategoryExists(dto.categoryId);
 		}
 
-		console.log('[updateApplication] Request:', { userId, applicationId, dto });
+		console.log('update Application Request:', { userId, applicationId, dto });
 		   try {
 			   const updateData: any = {};
 			   if (dto.categoryId) {
