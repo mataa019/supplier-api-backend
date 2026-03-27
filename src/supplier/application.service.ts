@@ -132,20 +132,6 @@ export class SupplierApplicationService {
 			   throw error;
 		   }
 
-		await this.auditService.log({
-			userId,
-			action: AuditAction.UPDATE_APPLICATION,
-			entity: AuditEntity.APPLICATION,
-			entityId: updated.id,
-			details: {
-				categoryId: updated.categoryId,
-				status: updated.status,
-				createdByRole: actor.role,
-				createdByEmail: actor.email,
-			},
-		});
-
-		return updated;
 	}
 
 	async submitApplication(
