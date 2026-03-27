@@ -84,6 +84,7 @@ export class SupplierApplicationService {
 		userId: string,
 		applicationId: string,
 		dto: UpdateApplicationDto,
+		
 	) {
 		const application = await this.getOwnedApplication(userId, applicationId);
 		const actor = await this.getUserAuditContext(userId);
@@ -96,13 +97,40 @@ export class SupplierApplicationService {
 			await this.ensureActiveCategoryExists(dto.categoryId);
 		}
 
-		const updated = await this.prisma.application.update({
-			where: { id: applicationId },
-			data: {
-				categoryId: dto.categoryId ?? undefined,
-			},
-			include: this.applicationInclude(),
-		});
+		console.log('[updateApplication] Request:', { userId, applicationId, dto });
+		   try {
+			   const updateData: any = {};
+			   if (dto.categoryId) {
+				   updateData.categoryId = dto.categoryId;
+			   }
+			   if (dto.documents) {
+				   updateData.documents = dto.documents;
+			   }
+			   const updated = await this.prisma.application.update({
+				   where: { id: applicationId },
+				   data: updateData,
+				   include: this.applicationInclude(),
+			   });
+
+			   await this.auditService.log({
+				   userId,
+				   action: AuditAction.UPDATE_APPLICATION,
+				   entity: AuditEntity.APPLICATION,
+				   entityId: updated.id,
+				   details: {
+					   categoryId: updated.categoryId,
+					   status: updated.status,
+					   createdByRole: actor.role,
+					   createdByEmail: actor.email,
+				   },
+			   });
+
+			   console.log('[updateApplication] Success:', updated);
+			   return updated;
+		   } catch (error) {
+			   console.error('[updateApplication] Error:', error.message, error.stack);
+			   throw error;
+		   }
 
 		await this.auditService.log({
 			userId,

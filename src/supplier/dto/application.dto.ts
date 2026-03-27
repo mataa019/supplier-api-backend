@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  IsArray,
   IsInt,
 } from 'class-validator';
 
@@ -17,7 +18,14 @@ export class CreateApplicationDto {
   categoryId: string;
 }
 
-export class UpdateApplicationDto extends PartialType(CreateApplicationDto) {}
+
+export class UpdateApplicationDto extends PartialType(CreateApplicationDto) {
+  @ApiPropertyOptional({ type: [String], description: 'Array of document IDs to attach to the application' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  documents?: string[];
+}
 
 export class SubmitApplicationDto {
   @ApiProperty({ example: true })
