@@ -417,8 +417,8 @@ export class AuthService {
       data: { used: true },
     });
 
-    // Generate new OTP
-    const otp = this.generateOtp();
+    // Generate new unique OTP
+    const otp = await this.generateUniqueOtpCode();
     await this.prisma.otp.create({
       data: {
         userId: user.id,
