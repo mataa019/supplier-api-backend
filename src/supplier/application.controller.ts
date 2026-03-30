@@ -6,9 +6,8 @@ import {
 	Param,
 	Patch,
 	Post,
-	Query,
+
 	Request,
-	UploadedFile,
 	UploadedFiles,
 	UseGuards,
 	UseInterceptors,
@@ -22,8 +21,7 @@ import { ApiProtectedEndpoint } from '../common/decorators';
 import {
 	CreateApplicationDto,
 	SubmitApplicationDto,
-	SupplierApplicationsQueryDto,
-	UploadApplicationDocumentDto,
+
 	UpdateApplicationDto,
 	WithdrawApplicationDto,
 } from './dto/application.dto';

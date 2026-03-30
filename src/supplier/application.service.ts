@@ -226,24 +226,41 @@ export class SupplierApplicationService {
 		const application = await this.getOwnedApplication(userId, applicationId);
 		const actor = await this.getUserAuditContext(userId);
 
-		if (!files || !Array.isArray(files) || files.length === 0) {
-			throw new BadRequestException('At least one document file is required');
-		}
-		if (!Array.isArray(documents) || documents.length !== files.length) {
-			throw new BadRequestException('Documents metadata and files count mismatch');
-		}
+		   if (!files || !Array.isArray(files) || files.length === 0) {
+			   throw new BadRequestException('At least one document file is required');
+		   }
+		   if (!Array.isArray(documents) || documents.length !== files.length) {
+			   throw new BadRequestException('Documents metadata and files count mismatch');
+		   }
 
-		if (!['draft', 'submitted', 'under_review'].includes(application.status)) {
-			throw new BadRequestException(
-				'Documents can only be uploaded for draft, submitted, or under review applications',
-			);
-		}
+		   // Enforce all required types must be uploaded at once
+		   const requiredTypes = [
+			   'application_form',
+			   'business_registration',
+			   'tax_certificate',
+			   'company_profile',
+			   'references',
+
+		   ];
+		   const uploadedTypes = documents.map(doc => doc.type);
+		   const missingRequired = requiredTypes.filter(type => !uploadedTypes.includes(type));
+		   if (missingRequired.length > 0) {
+			   throw new BadRequestException(
+				   `Missing required document types: ${missingRequired.join(', ')}`
+			   );
+		   }
+
+		   if (!['draft', 'submitted'].includes(application.status)) {
+			   throw new BadRequestException(
+				   'Documents can only be uploaded for draft or submitted applications',
+			   );
+		   }
 
 		const relativeDirectory = join('uploads', 'application-documents');
 		const absoluteDirectory = join(process.cwd(), relativeDirectory);
 		await mkdir(absoluteDirectory, { recursive: true });
 
-			   const createdDocs: PrismaDocument[] = [];
+	const createdDocs: PrismaDocument[] = [];
 	   for (let i = 0; i < files.length; i++) {
 		   const file = files[i];
 		   const docMeta = documents[i];
@@ -364,11 +381,11 @@ export class SupplierApplicationService {
 			throw new NotFoundException('Document not found');
 		}
 
-		if (!['draft', 'submitted', 'under_review'].includes(document.application.status)) {
-			throw new BadRequestException(
-				'Documents can only be deleted for draft, submitted, or under review applications',
-			);
-		}
+		   if (!['draft', 'submitted'].includes(document.application.status)) {
+			   throw new BadRequestException(
+				   'Documents can only be deleted for draft or submitted applications',
+			   );
+		   }
 
 		await this.prisma.document.delete({ where: { id: documentId } });
 
@@ -413,9 +430,7 @@ export class SupplierApplicationService {
 	 if (!['draft', 'withdrawn'].includes(application.status)) {
 		 throw new BadRequestException('Only draft or withdrawn applications can be deleted');
 	 }
-	 // Delete all related documents first
 	 await this.prisma.document.deleteMany({ where: { applicationId } });
-	 // Now delete the application
 	 await this.prisma.application.delete({ where: { id: applicationId } });
 	 return { message: 'Application deleted successfully' };
  }
