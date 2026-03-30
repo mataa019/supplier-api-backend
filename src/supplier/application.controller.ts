@@ -148,7 +148,23 @@ export class SupplierApplicationController {
 	@ApiProtectedEndpoint('Update application', 'Application draft updated')
 	@ApiBody({
 		description: 'Update application category and documents',
-		type: UpdateApplicationDto,
+		schema: {
+			type: 'object',
+			properties: {
+				categoryId: {
+					type: 'string',
+					description: 'The new category ID for the application',
+					example: 'new-category-id',
+				},
+				documents: {
+					type: 'array',
+					description: 'Array of document IDs to attach to the application',
+					items: { type: 'string' },
+					example: ['docId1', 'docId2', 'docId3'],
+				},
+			},
+			required: ['categoryId', 'documents'],
+		},
 		examples: {
 			default: {
 				summary: 'Update category and documents',

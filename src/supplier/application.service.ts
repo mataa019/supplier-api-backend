@@ -104,7 +104,9 @@ export class SupplierApplicationService {
 				   updateData.categoryId = dto.categoryId;
 			   }
 			   if (dto.documents) {
-				   updateData.documents = dto.documents;
+				   updateData.documents = {
+				     set: dto.documents.map(id => ({ id })),
+				   };
 			   }
 			   const updated = await this.prisma.application.update({
 				   where: { id: applicationId },
@@ -242,44 +244,50 @@ export class SupplierApplicationService {
 		await mkdir(absoluteDirectory, { recursive: true });
 
 			   const createdDocs: PrismaDocument[] = [];
-		for (let i = 0; i < files.length; i++) {
-			const file = files[i];
-			const docMeta = documents[i];
-			const extension = this.resolveDocumentExtension(file);
-			const storedFileName = `${randomUUID()}${extension}`;
-			const relativePath = join(relativeDirectory, storedFileName);
-			const absolutePath = join(process.cwd(), relativePath);
-			await writeFile(absolutePath, file.buffer);
-			// Validate and cast docMeta.type to DocumentType
-			if (!Object.values(DocumentType).includes(docMeta.type as DocumentType)) {
-				throw new BadRequestException(`Invalid document type: ${docMeta.type}`);
-			}
-			const created = await this.prisma.document.create({
-				data: {
-					applicationId,
-					type: docMeta.type as DocumentType,
-					fileName: file.originalname || storedFileName,
-					filePath: relativePath,
-				},
-			});
+	   for (let i = 0; i < files.length; i++) {
+		   const file = files[i];
+		   const docMeta = documents[i];
+		   const extension = this.resolveDocumentExtension(file);
+		   const storedFileName = `${randomUUID()}${extension}`;
+		   const relativePath = join(relativeDirectory, storedFileName);
+		   const absolutePath = join(process.cwd(), relativePath);
+		   await writeFile(absolutePath, file.buffer);
+		   // Validate and cast docMeta.type to DocumentType
+		   if (!Object.values(DocumentType).includes(docMeta.type as DocumentType)) {
+			   throw new BadRequestException(`Invalid document type: ${docMeta.type}`);
+		   }
+		   const created = await this.prisma.document.create({
+			   data: {
+				   applicationId,
+				   type: docMeta.type as DocumentType,
+				   fileName: file.originalname || storedFileName,
+				   filePath: relativePath,
+			   },
+		   });
 
-			await this.auditService.log({
-				userId,
-				action: AuditAction.UPLOAD_DOCUMENT,
-				entity: AuditEntity.DOCUMENT,
-				entityId: created.id,
-				details: {
-					applicationId,
-					type: created.type,
-					fileName: created.fileName,
-					description: docMeta.description ?? null,
-					createdByRole: actor.role,
-					createdByEmail: actor.email,
-				},
-			});
-			   createdDocs.push(created);
-		}
-		return createdDocs;
+		   await this.auditService.log({
+			   userId,
+			   action: AuditAction.UPLOAD_DOCUMENT,
+			   entity: AuditEntity.DOCUMENT,
+			   entityId: created.id,
+			   details: {
+				   applicationId,
+				   type: created.type,
+				   fileName: created.fileName,
+				   description: docMeta.description ?? null,
+				   createdByRole: actor.role,
+				   createdByEmail: actor.email,
+			   },
+		   });
+		   createdDocs.push(created);
+	   }
+	   // Fetch and return the full list of documents for this application after upload
+	   const allDocuments = await this.prisma.document.findMany({
+		   where: { applicationId },
+		   orderBy: { uploadedAt: 'desc' },
+	   });
+	   console.log('[uploadApplicationDocuments] All documents:', allDocuments);
+	   return allDocuments;
 	}
 
 	async listApplicationDocuments(userId: string, applicationId: string) {
