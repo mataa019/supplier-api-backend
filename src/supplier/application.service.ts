@@ -408,14 +408,17 @@ export class SupplierApplicationService {
 
 		return supplier;
 	}
- 	async deleteApplication(userId: string, applicationId: string) {
-		const application = await this.getOwnedApplication(userId, applicationId);
-		if (!['draft', 'withdrawn'].includes(application.status)) {
-			throw new BadRequestException('Only draft or withdrawn applications can be deleted');
-		}
-		await this.prisma.application.delete({ where: { id: applicationId } });
-		return { message: 'Application deleted successfully' };
-	}
+	async deleteApplication(userId: string, applicationId: string) {
+	 const application = await this.getOwnedApplication(userId, applicationId);
+	 if (!['draft', 'withdrawn'].includes(application.status)) {
+		 throw new BadRequestException('Only draft or withdrawn applications can be deleted');
+	 }
+	 // Delete all related documents first
+	 await this.prisma.document.deleteMany({ where: { applicationId } });
+	 // Now delete the application
+	 await this.prisma.application.delete({ where: { id: applicationId } });
+	 return { message: 'Application deleted successfully' };
+ }
 	
 	private async getUserAuditContext(userId: string) {
 		const user = await this.prisma.user.findUnique({
