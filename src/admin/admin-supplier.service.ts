@@ -62,6 +62,7 @@ export class AdminSupplierService {
     userId: string,
     userRole?: string,
     userEmail?: string,
+    file?: any,
   ) {
     if (!dto?.name?.trim()) {
       throw new BadRequestException('name is required');
@@ -79,23 +80,28 @@ export class AdminSupplierService {
       throw new BadRequestException('requirements should not be empty');
     }
 
-    if (
-      dto.documentTemplate !== undefined &&
-      typeof dto.documentTemplate !== 'string'
-    ) {
-      throw new BadRequestException('documentTemplate must be a string');
-    }
-
     const created = await this.prisma.category.create({
       data: {
         name: dto.name.trim(),
         description: dto.description?.trim() || null,
         applicationFee: dto.applicationFee,
         status: dto.status ? (dto.status as CategoryStatus) : undefined,
-        documentTemplate: dto.documentTemplate?.trim() || null,
+        documentTemplate: null,
         Requirements: dto.requirements.trim(),
       },
     });
+
+    // If file is provided, upload and update documentTemplate
+    if (file) {
+      const uploadResult = await this.uploadCategoryTemplateDocument(
+        created.id,
+        file,
+        userId,
+        userRole,
+        userEmail,
+      );
+      created.documentTemplate = uploadResult.category.documentTemplate;
+    }
 
     await this.auditService.log({
       userId,
@@ -119,6 +125,7 @@ export class AdminSupplierService {
     userId: string,
     userRole?: string,
     userEmail?: string,
+    file?: any,
   ) {
     await this.ensureCategoryExists(categoryId);
 
@@ -140,28 +147,37 @@ export class AdminSupplierService {
         applicationFee: dto.applicationFee,
         status: dto.status ? (dto.status as CategoryStatus) : undefined,
         Requirements: dto.requirements?.trim(),
-        documentTemplate:
-          dto.documentTemplate === undefined
-            ? undefined
-            : (dto.documentTemplate?.trim() || null),
       },
     });
+
+    // If file is provided, upload and update documentTemplate
+    let finalUpdated = updated;
+    if (file) {
+      const uploadResult = await this.uploadCategoryTemplateDocument(
+        categoryId,
+        file,
+        userId,
+        userRole,
+        userEmail,
+      );
+      finalUpdated = { ...updated, documentTemplate: uploadResult.category.documentTemplate };
+    }
 
     await this.auditService.log({
       userId,
       action: AuditAction.UPDATE_CATEGORY,
       entity: AuditEntity.CATEGORY,
-      entityId: updated.id,
+      entityId: finalUpdated.id,
       details: {
-        name: updated.name,
-        status: updated.status,
-        applicationFee: updated.applicationFee,
+        name: finalUpdated.name,
+        status: finalUpdated.status,
+        applicationFee: finalUpdated.applicationFee,
         createdByRole: userRole,
         createdByEmail: userEmail,
       },
     });
 
-    return updated;
+    return finalUpdated;
   }
 
   async deleteCategory(
@@ -182,22 +198,27 @@ export class AdminSupplierService {
       );
     }
 
+    // Remove template document (if any) and handle audit logging
     if (category.documentTemplate) {
-      const oldPath = this.toAbsolutePath(category.documentTemplate);
-      await this.deleteFileIfExists(oldPath);
+      await this.removeCategoryTemplateDocument(
+        categoryId,
+        userId,
+        userRole,
+        userEmail
+      );
     }
 
     await this.prisma.category.delete({
       where: { id: categoryId },
     });
 
+    // Only log the category deletion (template removal is already logged)
     await this.auditService.log({
       userId,
       action: AuditAction.DELETE_CATEGORY,
       entity: AuditEntity.CATEGORY,
       entityId: categoryId,
       details: {
-        documentTemplate: category.documentTemplate ?? null,
         createdByRole: userRole,
         createdByEmail: userEmail,
       },

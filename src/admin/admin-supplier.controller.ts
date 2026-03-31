@@ -43,26 +43,31 @@ export class AdminSupplierController {
 
   @Post('categories')
   @Roles('admin', 'manager')
+  @UseInterceptors(FileInterceptor('file'))
   @ApiAdminEndpoint('Create category', 'Category created')
   async createCategory(
     @Req() req: any,
     @Body() body: CreateCategoryDto,
+    @UploadedFile() file: any,
   ) {
     return this.adminSupplierService.createCategory(
       body,
       req.user.id,
       req.user.role,
       req.user.email,
+      file,
     );
   }
 
   @Patch('categories/:categoryId')
   @Roles('admin', 'manager')
+  @UseInterceptors(FileInterceptor('file'))
   @ApiAdminEndpoint('Update category', 'Category updated')
   async updateCategory(
     @Req() req: any,
     @Param('categoryId') categoryId: string,
     @Body() body: UpdateCategoryDto,
+    @UploadedFile() file: any,
   ) {
     return this.adminSupplierService.updateCategory(
       categoryId,
@@ -70,6 +75,7 @@ export class AdminSupplierController {
       req.user.id,
       req.user.role,
       req.user.email,
+      file,
     );
   }
 
