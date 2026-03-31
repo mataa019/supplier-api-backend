@@ -27,10 +27,6 @@ export class CreateCategoryDto {
   @IsEnum(['active', 'inactive'])
   status?: 'active' | 'inactive';
 
-  @ApiPropertyOptional({ description: 'Optional template document path (managed by upload endpoint)' })
-  @IsOptional()
-  @IsString()
-  documentTemplate?: string;
 }
 
 export class UpdateCategoryDto {
@@ -60,8 +56,4 @@ export class UpdateCategoryDto {
   @IsEnum(['active', 'inactive'])
   status?: 'active' | 'inactive';
 
-  @ApiPropertyOptional({ nullable: true, description: 'Template document path' })
-  @IsOptional()
-  @IsString()
-  documentTemplate?: string | null;
 }
