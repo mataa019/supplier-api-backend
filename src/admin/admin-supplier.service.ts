@@ -75,6 +75,17 @@ export class AdminSupplierService {
       throw new BadRequestException('application Fee cannot be negative');
     }
 
+    if (typeof dto.requirements !== 'string' || !dto.requirements.trim()) {
+      throw new BadRequestException('requirements should not be empty');
+    }
+
+    if (
+      dto.documentTemplate !== undefined &&
+      typeof dto.documentTemplate !== 'string'
+    ) {
+      throw new BadRequestException('documentTemplate must be a string');
+    }
+
     const created = await this.prisma.category.create({
       data: {
         name: dto.name.trim(),

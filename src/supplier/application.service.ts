@@ -104,8 +104,19 @@ export class SupplierApplicationService {
 				   updateData.categoryId = dto.categoryId;
 			   }
 			   if (dto.documents) {
+				   // Only allow setting documents that belong to this application
+				   const validDocs = await this.prisma.document.findMany({
+					   where: {
+						   id: { in: dto.documents },
+						   applicationId: applicationId,
+					   },
+					   select: { id: true },
+				   });
+				   if (validDocs.length !== dto.documents.length) {
+					   throw new BadRequestException('One or more documents do not belong to this application');
+				   }
 				   updateData.documents = {
-				     set: dto.documents.map(id => ({ id })),
+					   set: validDocs.map(doc => ({ id: doc.id })),
 				   };
 			   }
 			   const updated = await this.prisma.application.update({
