@@ -104,7 +104,7 @@ export class AuthService {
             phone: dto.phone,
             email: dto.email,
             contactPerson: dto.companyName,
-            address: '',
+            address: dto.Address,
             status: 'active',
           },
         },

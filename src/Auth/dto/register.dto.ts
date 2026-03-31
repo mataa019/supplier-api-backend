@@ -32,4 +32,8 @@ export class RegisterDto {
   @IsNotEmpty()
   @MinLength(6)
   password: string;
+  @ApiProperty({ example: 'Lusaka-Zambia', description: 'Company address' })
+  @IsString()
+  @IsNotEmpty()
+  Address: string;
 }
