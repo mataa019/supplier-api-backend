@@ -197,7 +197,6 @@ export class AdminSupplierService {
         'Cannot delete category with existing applications',
       );
     }
-
     // Remove template document (if any) and handle audit logging
     if (category.documentTemplate) {
       await this.removeCategoryTemplateDocument(
@@ -211,8 +210,6 @@ export class AdminSupplierService {
     await this.prisma.category.delete({
       where: { id: categoryId },
     });
-
-    // Only log the category deletion (template removal is already logged)
     await this.auditService.log({
       userId,
       action: AuditAction.DELETE_CATEGORY,
