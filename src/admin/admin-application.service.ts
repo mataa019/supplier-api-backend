@@ -77,46 +77,7 @@ export class AdminApplicationService {
 		});
 	}
 
-	async markUnderReview(
-		applicationId: string,
-		reviewerId: string,
-		reviewerRole: string,
-		reviewerEmail: string,
-		dto: ReviewApplicationDto,
-	) {
-		const application = await this.ensureApplicationExists(applicationId);
-
-		if (!['submitted', 'under_review'].includes(application.status)) {
-			throw new BadRequestException(
-				'Only submitted applications can be marked under review',
-			);
-		}
-
-		const updated = await this.prisma.application.update({
-			where: { id: applicationId },
-			data: {
-				status: 'under_review',
-				reviewedAt: new Date(),
-				reviewedBy: reviewerId,
-				remarks: dto.remarks?.trim() || null,
-			},
-			include: this.applicationInclude(),
-		});
-
-		await this.auditService.log({
-			userId: reviewerId,
-			action: AuditAction.REVIEW_APPLICATION,
-			entity: AuditEntity.APPLICATION,
-			entityId: updated.id,
-			details: {
-				status: updated.status,
-				createdByRole: reviewerRole,
-				createdByEmail: reviewerEmail,
-			},
-		});
-
-		return updated;
-	}
+	
 
 	async approveApplication(
 		applicationId: string,

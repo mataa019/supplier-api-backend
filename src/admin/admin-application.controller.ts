@@ -47,21 +47,6 @@ export class AdminApplicationController {
 		return this.adminApplicationService.getApplicationDocuments(applicationId);
 	}
 
-	@Patch(':applicationId/under-review')
-	@ApiAdminEndpoint('Mark under review', 'Application marked as under review')
-	async markUnderReview(
-		@Request() req: { user: JwtUser },
-		@Param('applicationId') applicationId: string,
-		@Body() dto: ReviewApplicationDto,
-	) {
-		return this.adminApplicationService.markUnderReview(
-			applicationId,
-			req.user.id,
-			req.user.role,
-			req.user.email,
-			dto,
-		);
-	}
 
 	@Patch(':applicationId/approve')
 	@ApiAdminEndpoint('Approve application', 'Application approved')
