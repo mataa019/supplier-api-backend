@@ -77,22 +77,6 @@ export class AdminApplicationController {
 		const application = await this.adminApplicationService.getApplication(applicationId);
 		if (!application) throw new NotFoundException('Application not found');
 
-		// Prepare supplier details for response
-		const supplier = application.supplier ? {
-			id: application.supplier.id,
-			userId: application.supplier.user?.id,
-			companyName: application.supplier.companyName,
-			tpin: application.supplier.tpin,
-			registrationNumber: application.supplier.registrationNumber,
-			contactPerson: application.supplier.contactPerson,
-			phone: application.supplier.phone,
-			email: application.supplier.user?.email,
-			address: application.supplier.address,
-			status: application.supplier.status,
-			createdAt: application.supplier.createdAt,
-			updatedAt: application.supplier.updatedAt,
-		} : null;
-
 		// Get all PDF documents for this application
 		const documents = await this.adminApplicationService.getApplicationDocuments(applicationId);
 		const pdfDocs = documents.filter((doc: any) => doc.fileName.toLowerCase().endsWith('.pdf'));
@@ -123,8 +107,6 @@ export class AdminApplicationController {
 
 		res.setHeader('Content-Type', 'application/pdf');
 		res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-		// Send supplier details in a custom header (as JSON string)
-		res.setHeader('X-Supplier-Details', encodeURIComponent(JSON.stringify(supplier)));
 		return res.end(Buffer.from(mergedPdfBytes));
 	}
 
