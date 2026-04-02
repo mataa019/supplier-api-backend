@@ -92,6 +92,38 @@ export class AdminApplicationController {
 			})
 		);
 
+		// Create a supplier details page as the first page
+		const supplier = application.supplier;
+		if (supplier) {
+			const detailsPdf = await PDFDocument.create();
+			const page = detailsPdf.addPage([595.28, 841.89]); // A4 size in points
+			const { width, height } = page.getSize();
+			const font = await detailsPdf.embedFont(PDFDocument.PDFFont.Helvetica);
+			const fontSize = 14;
+			let y = height - 50;
+			const lineHeight = 22;
+			const details = [
+				`Company Name: ${supplier.companyName}`,
+				`Email: ${supplier.user?.email || ''}`,
+				`Address: ${supplier.address || ''}`,
+				`Contact Person: ${supplier.contactPerson || ''}`,
+				`Phone: ${supplier.phone || ''}`,
+				`TPIN: ${supplier.tpin || ''}`,
+				`Registration Number: ${supplier.registrationNumber || ''}`,
+				`Status: ${supplier.status || ''}`,
+				`Created At: ${supplier.createdAt}`,
+				`Updated At: ${supplier.updatedAt}`,
+			];
+			details.forEach(line => {
+				page.drawText(line, { x: 50, y, size: fontSize, font });
+				y -= lineHeight;
+			});
+			const detailsBytes = await detailsPdf.save();
+			const detailsDoc = await PDFDocument.load(detailsBytes);
+			const detailsPages = await mergedPdf.copyPages(detailsDoc, detailsDoc.getPageIndices());
+			detailsPages.forEach(page => mergedPdf.addPage(page));
+		}
+
 		// Merge PDFs using pdf-lib
 		const mergedPdf = await PDFDocument.create();
 		for (const pdfBytes of pdfBuffers) {
