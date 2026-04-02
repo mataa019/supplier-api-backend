@@ -22,9 +22,10 @@ import {
 import { AdminApplicationService } from './admin-application.service';
 import { Res, NotFoundException } from '@nestjs/common';
 import type { Response } from 'express';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { createReadStream, promises as fsPromises } from 'fs';
 import { join } from 'path';
+
 
 @ApiTags('Admin Applications')
 @ApiBearerAuth('JWT-auth')
@@ -92,13 +93,16 @@ export class AdminApplicationController {
 			})
 		);
 
-		// Create a supplier details page as the first page
+		// Merge PDFs using pdf-lib
+		const mergedPdf = await PDFDocument.create();
+
+		// Add supplier details page first
 		const supplier = application.supplier;
 		if (supplier) {
 			const detailsPdf = await PDFDocument.create();
 			const page = detailsPdf.addPage([595.28, 841.89]); // A4 size in points
 			const { width, height } = page.getSize();
-			const font = await detailsPdf.embedFont(PDFDocument.PDFFont.Helvetica);
+			const font = await detailsPdf.embedFont(StandardFonts.Helvetica);
 			const fontSize = 14;
 			let y = height - 50;
 			const lineHeight = 22;
@@ -124,8 +128,7 @@ export class AdminApplicationController {
 			detailsPages.forEach(page => mergedPdf.addPage(page));
 		}
 
-		// Merge PDFs using pdf-lib
-		const mergedPdf = await PDFDocument.create();
+		// Add all application PDFs
 		for (const pdfBytes of pdfBuffers) {
 			const pdf = await PDFDocument.load(pdfBytes);
 			const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
