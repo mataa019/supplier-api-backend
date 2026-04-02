@@ -35,5 +35,5 @@ export class RegisterDto {
   @ApiProperty({ example: 'Lusaka-Zambia', description: 'Company address' })
   @IsString()
   @IsNotEmpty()
-  Address: string;
+  address: string;
 }

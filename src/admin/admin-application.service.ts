@@ -8,6 +8,7 @@ import {
 	ReviewApplicationDto,
 	WithdrawApplicationDto,
 } from '../supplier/dto/application.dto';
+import { join } from 'path';
 
 @Injectable()
 export class AdminApplicationService {
@@ -25,7 +26,7 @@ export class AdminApplicationService {
 		if (query.status) where.status = query.status;
 		if (query.categoryId) where.categoryId = query.categoryId;
 		if (query.supplierId) where.supplierId = query.supplierId;
-		if (query.search) {
+		if (query.search && query.search.trim() !== '') {
 			where.OR = [
 				{ remarks: { contains: query.search } },
 				{ category: { name: { contains: query.search } } },
@@ -77,7 +78,25 @@ export class AdminApplicationService {
 		});
 	}
 
-	
+	/**
+ * Get a document for download by application and document ID
+ */
+async getDocumentForDownload(applicationId: string, documentId: string) {
+	// Ensure the application exists
+	await this.ensureApplicationExists(applicationId);
+	// Find the document
+	const document = await this.prisma.document.findFirst({
+		where: { id: documentId, applicationId },
+	});
+	if (!document) {
+		throw new NotFoundException('Document not found');
+	}
+	const absolutePath = join(process.cwd(), document.filePath);
+	return {
+		fileName: document.fileName,
+		absolutePath,
+	};
+}
 
 	async approveApplication(
 		applicationId: string,
