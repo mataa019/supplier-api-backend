@@ -136,9 +136,12 @@ export class AdminApplicationController {
 		}
 		const mergedPdfBytes = await mergedPdf.save();
 
-		// Set filename
-		// Use a generic name for the merged PDF
-		const filename = `merged-documents.pdf`;
+		// Set filename to CompanyName - CategoryName.pdf
+		const companyName = application.supplier?.companyName || 'Company';
+		const categoryName = application.category?.name || 'Category';
+		const safeCompany = companyName.replace(/[^a-zA-Z0-9 _-]/g, '_');
+		const safeCategory = categoryName.replace(/[^a-zA-Z0-9 _-]/g, '_');
+		const filename = `${safeCompany} - ${safeCategory}.pdf`;
 
 		res.setHeader('Content-Type', 'application/pdf');
 		res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
