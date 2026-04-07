@@ -20,7 +20,7 @@ export class CreateCategoryDto {
   @ApiProperty({ example: 'Business registration certificate, TPIN certificate, Bank letter', description: 'Requirements for this category' })
   @IsNotEmpty()
   @IsString()
-  requirements: string;
+  requirements: string | undefined;
 
   @ApiPropertyOptional({ enum: ['active', 'inactive'], default: 'active', description: 'Category status' })
   @IsOptional()

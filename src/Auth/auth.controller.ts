@@ -35,10 +35,10 @@ export class AuthController {
     console.log('[POST /auth/register] Request:', dto);
     try {
       const result = await this.authService.register(dto, ip);
-      console.log('[POST /auth/register] Success:', result);
+      console.log('Registration Success:', result);
       return result;
     } catch (error) {
-      console.error('[POST /auth/register] Error:', error.message, error.stack);
+      console.error('Registration Failed');
       throw error;
     }
   }
@@ -65,10 +65,10 @@ export class AuthController {
     console.log('[POST /auth/login] Request:', dto);
     try {
       const result = await this.authService.login(dto, ip);
-      console.log('[POST /auth/login] Success:', result);
+      console.log('Login Success:', result);
       return result;
     } catch (error) {
-      console.error('[POST /auth/login] Error:', error.message, error.stack);
+      console.error('Login Failed');
       throw error;
     }
   }
@@ -77,13 +77,13 @@ export class AuthController {
   @Post('verify-otp')
   @ApiPublicEndpoint('Verify email with OTP', 'Email verified successfully')
   async verifyOtp(@Body() dto: VerifyOtpDto, @ClientIp() ip: string) {
-    console.log('[POST /auth/verify-otp] Request:', dto);
+    console.log('Verify OTP Request:', dto);
     try {
       const result = await this.authService.verifyOtp(dto, ip);
-      console.log('[POST /auth/verify-otp] Success:', result);
+      console.log('Verify OTP Success:', result);
       return result;
     } catch (error) {
-      console.error('[POST /auth/verify-otp] Error:', error.message, error.stack);
+      console.error('Verify OTP Failed');
       throw error;
     }
   }
@@ -95,10 +95,10 @@ export class AuthController {
     console.log('[POST /auth/resend-otp] Request:', dto);
     try {
       const result = await this.authService.resendOtp(dto, ip);
-      console.log('[POST /auth/resend-otp] Success:', result);
+      console.log('Resend OTP Success:', result);
       return result;
     } catch (error) {
-      console.error('[POST /auth/resend-otp] Error:', error.message, error.stack);
+      console.error('Resend OTP Failed');
       throw error;
     }
   }
@@ -111,10 +111,10 @@ export class AuthController {
     console.log('[GET /auth/profile] Request:', req.user);
     try {
       const result = await this.authService.getProfile(req.user.id);
-      console.log('[GET /auth/profile] Success:', result);
+      console.log('Get Profile Success:', result);
       return result;
     } catch (error) {
-      console.error('[GET /auth/profile] Error:', error.message, error.stack);
+      console.error('Get Profile Failed');
       throw error;
     }
   }
