@@ -130,10 +130,10 @@ export class AuthController {
         message: 'You have admin access',
         user: req.user,
       };
-      console.log('[GET /auth/admin-only] Success:', result);
+      console.log('Admin-only endpoint success:', result);
       return result;
     } catch (error) {
-      console.error('[GET /auth/admin-only] Error:', error.message, error.stack);
+      console.error('Admin-only endpoint failed');
       throw error;
     }
   }
