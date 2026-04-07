@@ -50,10 +50,10 @@ export class AuthController {
     console.log('[POST /auth/register/admin] Request:', dto);
     try {
       const result = await this.authService.registerAdmin(dto, ip);
-      console.log('[POST /auth/register/admin] Success:', result);
+      console.log('Register Admin Success:', result);
       return result;
     } catch (error) {
-      console.error('[POST /auth/register/admin] Error:', error.message, error.stack);
+      console.error('Register Admin Failed');
       throw error;
     }
   }
