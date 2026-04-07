@@ -32,7 +32,7 @@ export class AuthController {
   @Post('register')
   @ApiCreateEndpoint('Register a new supplier', 'User registered successfully')
   async register(@Body() dto: RegisterDto, @ClientIp() ip: string) {
-    console.log('[POST /auth/register] Request:', dto);
+    console.log('Register Request:', dto);
     try {
       const result = await this.authService.register(dto, ip);
       console.log('Registration Success:', result);
@@ -47,7 +47,7 @@ export class AuthController {
   @Post('register/admin')
   @ApiCreateEndpoint('Register a new admin (email and password only)', 'Admin registered successfully')
   async registerAdmin(@Body() dto: AdminRegisterDto, @ClientIp() ip: string) {
-    console.log('[POST /auth/register/admin] Request:', dto);
+    console.log('Register Admin Request:', dto);
     try {
       const result = await this.authService.registerAdmin(dto, ip);
       console.log('Register Admin Success:', result);
@@ -62,7 +62,7 @@ export class AuthController {
   @Post('login')
   @ApiPublicEndpoint('Login with email and password', 'Login successful')
   async login(@Body() dto: LoginDto, @ClientIp() ip: string) {
-    console.log('[POST /auth/login] Request:', dto);
+    console.log('Login Request:', dto);
     try {
       const result = await this.authService.login(dto, ip);
       console.log('Login Success:', result);
@@ -92,7 +92,7 @@ export class AuthController {
   @Post('resend-otp')
   @ApiPublicEndpoint('Resend OTP to email', 'OTP sent successfully')
   async resendOtp(@Body() dto: ResendOtpDto, @ClientIp() ip: string) {
-    console.log('[POST /auth/resend-otp] Request:', dto);
+    console.log('Resend OTP Request:', dto);
     try {
       const result = await this.authService.resendOtp(dto, ip);
       console.log('Resend OTP Success:', result);
@@ -108,7 +108,7 @@ export class AuthController {
   @Get('profile')
   @ApiProtectedEndpoint('Get current user profile', 'Returns user profile')
   async getProfile(@Request() req: { user: JwtUser }) {
-    console.log('[GET /auth/profile] Request:', req.user);
+    console.log('Get Profile Request:', req.user);
     try {
       const result = await this.authService.getProfile(req.user.id);
       console.log('Get Profile Success:', result);
@@ -124,7 +124,7 @@ export class AuthController {
   @Get('admin-only')
   @ApiAdminEndpoint('Admin-only endpoint', 'Returns admin access confirmation')
   async adminOnly(@Request() req: { user: JwtUser }) {
-    console.log('[GET /auth/admin-only] Request:', req.user);
+    console.log('Admin-only Request:', req.user);
     try {
       const result = {
         message: 'You have admin access',
