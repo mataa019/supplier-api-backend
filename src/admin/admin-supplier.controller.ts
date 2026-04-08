@@ -1,12 +1,17 @@
+import express from 'express';
+import { createReadStream } from 'fs';
+ 
 import {
   Body,
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
   Req,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -77,6 +82,23 @@ export class AdminSupplierController {
       req.user.email,
       file,
     );
+  }
+  
+   @Get('categories/:categoryId/templatedownload')
+  @Roles('admin', 'manager')
+  @ApiAdminEndpoint('Download category template document', 'Downloads the template document for a category')
+  async downloadCategoryTemplate(
+    @Param('categoryId') categoryId: string,
+    @Res() res: express.Response,
+  ) {
+    const doc = await this.adminSupplierService.getCategoryTemplateDocument(categoryId);
+    if (!doc || !doc.absolutePath) {
+      throw new NotFoundException('Template document not found');
+    }
+    res.setHeader('Content-Disposition', `attachment; filename="${doc.fileName}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    const fileStream = createReadStream(doc.absolutePath);
+    fileStream.pipe(res);
   }
 
   @Delete('categories/:categoryId')
