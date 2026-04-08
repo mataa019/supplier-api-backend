@@ -84,7 +84,7 @@ export class AdminSupplierController {
     );
   }
   
-   @Get('categories/:categoryId/templatedownload')
+  @Get('categories/:categoryId/templatedownload')
   @Roles('admin', 'manager')
   @ApiAdminEndpoint('Download category template document', 'Downloads the template document for a category')
   async downloadCategoryTemplate(
