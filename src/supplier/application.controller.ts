@@ -1,3 +1,4 @@
+import { Delete } from '@nestjs/common';
 import {
 	Body,
 	Controller,
@@ -5,23 +6,22 @@ import {
 	Param,
 	Patch,
 	Post,
-	Query,
+
 	Request,
-	UploadedFile,
+	UploadedFiles,
 	UseGuards,
 	UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { JwtUser } from '../Auth/jwt/types';
 import { Roles, RolesGuard } from '../Auth/jwt/roles';
 import { ApiProtectedEndpoint } from '../common/decorators';
 import {
 	CreateApplicationDto,
 	SubmitApplicationDto,
-	SupplierApplicationsQueryDto,
-	UploadApplicationDocumentDto,
+
 	UpdateApplicationDto,
 	WithdrawApplicationDto,
 } from './dto/application.dto';
@@ -47,23 +47,10 @@ export class SupplierApplicationController {
 	@Get('me')
 	@ApiProtectedEndpoint('My applications', 'Returns supplier applications')
 	async listMyApplications(
-		@Request() req: { user: JwtUser },
-		@Query() query: SupplierApplicationsQueryDto,
-	) {
-		return this.supplierApplicationService.listMyApplications(req.user.id, query);
-	}
-
-	@Get(':applicationId/timeline')
-	@ApiProtectedEndpoint('Application timeline', 'Returns application status history')
-	async getApplicationTimeline(
-		@Request() req: { user: JwtUser },
-		@Param('applicationId') applicationId: string,
-	) {
-		return this.supplierApplicationService.getApplicationTimeline(
-			req.user.id,
-			applicationId,
-		);
-	}
+		       @Request() req: { user: JwtUser },
+	       ) {
+		       return this.supplierApplicationService.listMyApplications(req.user.id);
+	       }
 
 	@Post(':applicationId/submit')
 	@ApiProtectedEndpoint('Submit application', 'Application submitted')
@@ -94,20 +81,39 @@ export class SupplierApplicationController {
 	}
 
 	@Post(':applicationId/documents')
-	@UseInterceptors(FileInterceptor('file'))
+	@UseInterceptors(FilesInterceptor('files'))
 	@ApiConsumes('multipart/form-data')
-	@ApiProtectedEndpoint('Upload application document', 'Document uploaded')
-	async uploadApplicationDocument(
+	@ApiProtectedEndpoint('Upload application documents', 'Documents uploaded')
+	@ApiBody({
+		schema: {
+			type: 'object',
+			properties: {
+				documents: {
+					type: 'string',
+					description: 'JSON stringified array of document metadata (type, description)',
+					example: '[{"type":"tax_certificate","description":"Updated tax certificate"}]',
+				},
+				files: {
+					type: 'array',
+					items: { type: 'string', format: 'binary' },
+				},
+			},
+			required: ['documents', 'files'],
+		},
+	})
+	async uploadApplicationDocuments(
 		@Request() req: { user: JwtUser },
 		@Param('applicationId') applicationId: string,
-		@Body() dto: UploadApplicationDocumentDto,
-		@UploadedFile() file: any,
+		@Body() body: any,
+		@UploadedFiles() files: any[],
 	) {
-		return this.supplierApplicationService.uploadApplicationDocument(
+		// Parse documents metadata from body
+		const documents = JSON.parse(body.documents);
+		return this.supplierApplicationService.uploadApplicationDocuments(
 			req.user.id,
 			applicationId,
-			dto,
-			file,
+			documents,
+			files,
 		);
 	}
 
@@ -138,15 +144,66 @@ export class SupplierApplicationController {
 
 	@Patch(':applicationId')
 	@ApiProtectedEndpoint('Update application', 'Application draft updated')
+	@ApiBody({
+		description: 'Update application category and documents',
+		schema: {
+			type: 'object',
+			properties: {
+				categoryId: {
+					type: 'string',
+					description: 'The new category ID for the application',
+					example: 'new-category-id',
+				},
+				documents: {
+					type: 'array',
+					description: 'Array of document IDs to attach to the application',
+					items: { type: 'string' },
+					example: ['docId1', 'docId2', 'docId3'],
+				},
+			},
+			required: ['categoryId', 'documents'],
+		},
+		examples: {
+			default: {
+				summary: 'Update category and documents',
+				value: {
+					categoryId: 'new-category-id',
+					documents: ['docId1', 'docId2', 'docId3'],
+				},
+			},
+		},
+	})
 	async updateApplication(
 		@Request() req: { user: JwtUser },
 		@Param('applicationId') applicationId: string,
 		@Body() dto: UpdateApplicationDto,
 	) {
-		return this.supplierApplicationService.updateApplication(
-			req.user.id,
-			applicationId,
-			dto,
-		);
+		console.log('updateApplication Request:', { userId: req.user.id, applicationId, dto });
+		try {
+			const result = await this.supplierApplicationService.updateApplication(
+				req.user.id,
+				applicationId,
+				dto,
+			);
+			console.log('[updateApplication] Success:', result);
+			return {
+				id: result.id,
+				status: result.status,
+				category: result.category,
+				documents: result.documents,
+			};
+		} catch (error) {
+			console.error('[updateApplication] Error:', error.message, error.stack);
+			throw error;
+		}
+	}
+
+	@Delete(':applicationId')
+	@ApiProtectedEndpoint('Delete application', 'Deletes an application if status is draft or withdrawn')
+	async deleteApplication(
+		@Request() req: { user: JwtUser },
+		@Param('applicationId') applicationId: string,
+	) {
+		return this.supplierApplicationService.deleteApplication(req.user.id, applicationId);
 	}
 }

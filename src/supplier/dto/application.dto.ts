@@ -1,5 +1,6 @@
 import { PartialType } from '@nestjs/swagger';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
 import {
   IsBoolean,
   IsIn,
@@ -7,8 +8,10 @@ import {
   IsOptional,
   IsString,
   Min,
+  IsArray,
   IsInt,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateApplicationDto {
   @ApiProperty({ example: 'cm9abc123xyz', description: 'Category ID' })
@@ -17,7 +20,14 @@ export class CreateApplicationDto {
   categoryId: string;
 }
 
-export class UpdateApplicationDto extends PartialType(CreateApplicationDto) {}
+
+export class UpdateApplicationDto extends PartialType(CreateApplicationDto) {
+  @ApiPropertyOptional({ type: [String], description: 'Array of document IDs to attach to the application' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  documents?: string[];
+}
 
 export class SubmitApplicationDto {
   @ApiProperty({ example: true })
@@ -32,7 +42,7 @@ export class WithdrawApplicationDto {
   reason: string;
 }
 
-export class UploadApplicationDocumentDto {
+export class UploadApplicationDocumentItemDto {
   @ApiProperty({
     enum: [
       'business_registration',
@@ -63,6 +73,12 @@ export class UploadApplicationDocumentDto {
   description?: string;
 }
 
+export class UploadApplicationDocumentDto {
+  @ApiProperty({ type: [UploadApplicationDocumentItemDto] })
+  @IsNotEmpty()
+  documents: UploadApplicationDocumentItemDto[];
+}
+
 export class ReviewApplicationDto {
   @ApiPropertyOptional({ example: 'Documents are complete' })
   @IsOptional()
@@ -78,22 +94,24 @@ export class RejectApplicationDto {
 }
 
 export class BaseApplicationsQueryDto {
-  @ApiPropertyOptional({ example: 'general' })
+   @ApiPropertyOptional({example: 'General Supplier' })
   @IsOptional()
   @IsString()
-  search?: string;
+  search?: string; // Keyword to search in remarks, category name, or supplier company name. Omit to see all.
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
-  page?: number;
+  page?: number; // Page number for pagination (default: 1)
 
   @ApiPropertyOptional({ example: 10 })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
-  limit?: number;
+  limit?: number; // Number of items per page (default: 10)
 }
 
 export class SupplierApplicationsQueryDto extends BaseApplicationsQueryDto {
@@ -107,15 +125,15 @@ export class AdminApplicationsQueryDto extends BaseApplicationsQueryDto {
   @ApiPropertyOptional({ enum: ['draft', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'] })
   @IsOptional()
   @IsIn(['draft', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'])
-  status?: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'withdrawn';
+  status?: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'withdrawn'; // Filter by application status. Omit to include all statuses.
 
   @ApiPropertyOptional({ example: 'cm9cat123xyz' })
   @IsOptional()
   @IsString()
-  categoryId?: string;
+  categoryId?: string; // Filter by category ID. Omit to include all categories.
 
   @ApiPropertyOptional({ example: 'cm9sup123xyz' })
   @IsOptional()
   @IsString()
-  supplierId?: string;
+  supplierId?: string; // Filter by supplier ID. Omit to include all suppliers.
 }

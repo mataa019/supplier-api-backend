@@ -1,3 +1,5 @@
+
+import { document_type, Document as PrismaDocument } from '@prisma/client';
 import {
 	BadRequestException,
 	Injectable,
@@ -11,10 +13,8 @@ import { AuditService } from '../audit/audit.service';
 import { AuditAction, AuditEntity } from '../audit/audit.types';
 import {
 	CreateApplicationDto,
-	UploadApplicationDocumentDto,
 	SubmitApplicationDto,
-	SupplierApplicationsQueryDto,
-	UpdateApplicationDto,
+		UpdateApplicationDto,
 	WithdrawApplicationDto,
 } from './dto/application.dto';
 
@@ -55,45 +55,26 @@ export class SupplierApplicationService {
 		return application;
 	}
 
-	async listMyApplications(userId: string, query: SupplierApplicationsQueryDto) {
-		const supplier = await this.getSupplierByUserId(userId);
-		const page = query.page ?? 1;
-		const limit = query.limit ?? 10;
-		const skip = (page - 1) * limit;
-
-		const where: Record<string, unknown> = {
-			supplierId: supplier.id,
-		};
-
-		if (query.status) where.status = query.status;
-		if (query.search) {
-			where.OR = [
-				{ category: { name: { contains: query.search } } },
-				{ remarks: { contains: query.search } },
-			];
-		}
-
-		const [data, total] = await Promise.all([
-			this.prisma.application.findMany({
-				where,
-				include: this.applicationInclude(),
-				orderBy: { createdAt: 'desc' },
-				skip,
-				take: limit,
-			}),
-			this.prisma.application.count({ where }),
-		]);
-
-		return {
-			data,
-			meta: {
-				total,
-				page,
-				limit,
-				totalPages: Math.ceil(total / limit),
-			},
-		};
-	}
+	async listMyApplications(userId: string) {
+		       const supplier = await this.getSupplierByUserId(userId);
+		       const applications = await this.prisma.application.findMany({
+			       where: { supplierId: supplier.id },
+			       include: this.applicationInclude(),
+			       orderBy: { createdAt: 'desc' },
+		       });
+		       // Only return the applications and their status
+		       return applications.map(app => ({
+			       id: app.id,
+			       status: app.status,
+			       category: app.category,
+			       submittedAt: app.submittedAt,
+			       reviewedAt: app.reviewedAt,
+			       remarks: app.remarks,
+			       createdAt: app.createdAt,
+			       documents: app.documents,
+			       payments: app.payments,
+		       }));
+	       }
 
 	async getApplication(userId: string, applicationId: string) {
 		return this.getOwnedApplication(userId, applicationId);
@@ -103,6 +84,7 @@ export class SupplierApplicationService {
 		userId: string,
 		applicationId: string,
 		dto: UpdateApplicationDto,
+		
 	) {
 		const application = await this.getOwnedApplication(userId, applicationId);
 		const actor = await this.getUserAuditContext(userId);
@@ -115,28 +97,59 @@ export class SupplierApplicationService {
 			await this.ensureActiveCategoryExists(dto.categoryId);
 		}
 
-		const updated = await this.prisma.application.update({
-			where: { id: applicationId },
-			data: {
-				categoryId: dto.categoryId ?? undefined,
-			},
-			include: this.applicationInclude(),
-		});
+		console.log('update Application Request:', { userId, applicationId, dto });
+		   try {
+			   const updateData: any = {};
+			   if (dto.categoryId) {
+				   updateData.categoryId = dto.categoryId;
+			   }
+			   if (dto.documents) {
+				   // Only allow setting documents that belong to this application
+				   const validDocs = await this.prisma.document.findMany({
+					   where: {
+						   id: { in: dto.documents },
+						   applicationId: applicationId,
+					   },
+					   select: { id: true },
+				   });
+				   if (validDocs.length !== dto.documents.length) {
+					   throw new BadRequestException('One or more documents do not belong to this application');
+				   }
+				   updateData.documents = {
+					   set: validDocs.map(doc => ({ id: doc.id })),
+				   };
+			   }
+			   const updated = await this.prisma.application.update({
+				   where: { id: applicationId },
+				   data: updateData,
+				   include: this.applicationInclude(),
+			   });
 
-		await this.auditService.log({
-			userId,
-			action: AuditAction.UPDATE_APPLICATION,
-			entity: AuditEntity.APPLICATION,
-			entityId: updated.id,
-			details: {
-				categoryId: updated.categoryId,
-				status: updated.status,
-				createdByRole: actor.role,
-				createdByEmail: actor.email,
-			},
-		});
+			   await this.auditService.log({
+				   userId,
+				   action: AuditAction.UPDATE_APPLICATION,
+				   entity: AuditEntity.APPLICATION,
+				   entityId: updated.id,
+				   details: {
+					   categoryId: updated.categoryId,
+					   status: updated.status,
+					   createdByRole: actor.role,
+					   createdByEmail: actor.email,
+				   },
+			   });
 
-		return updated;
+			   console.log('[updateApplication] Success:', updated);
+			   return updated;
+		   } 		
+		catch (error) {
+		  if (error instanceof Error) {
+			console.error('list Application Documents Error:', error.message, error.stack);
+		  } else {
+			console.error('list Application Documents Unknown error:', error);
+		  }
+		  throw error;
+		}
+		
 	}
 
 	async submitApplication(
@@ -178,33 +191,7 @@ export class SupplierApplicationService {
 		return updated;
 	}
 
-	async getApplicationTimeline(userId: string, applicationId: string) {
-		await this.getOwnedApplication(userId, applicationId);
-
-		const logs = await this.prisma.audit.findMany({
-			where: {
-				entity: AuditEntity.APPLICATION,
-				entityId: applicationId,
-			},
-			orderBy: { createdAt: 'asc' },
-			include: {
-				user: {
-					select: { id: true, email: true, role: true },
-				},
-			},
-		});
-
-		return logs.map((log) => ({
-			id: log.id,
-			action: log.action,
-			entity: log.entity,
-			entityId: log.entityId,
-			details: this.parseDetails(log.details),
-			actor: log.user,
-			createdAt: log.createdAt,
-		}));
-	}
-
+	
 	async withdrawApplication(
 		userId: string,
 		applicationId: string,
@@ -246,69 +233,115 @@ export class SupplierApplicationService {
 		return updated;
 	}
 
-	async uploadApplicationDocument(
+	async uploadApplicationDocuments(
 		userId: string,
 		applicationId: string,
-		dto: UploadApplicationDocumentDto,
-		file: any,
+		documents: { type: string; description?: string }[],
+		files: any[],
 	) {
 		const application = await this.getOwnedApplication(userId, applicationId);
 		const actor = await this.getUserAuditContext(userId);
 
-		if (!file) {
-			throw new BadRequestException('Document file is required');
-		}
+		   if (!files || !Array.isArray(files) || files.length === 0) {
+			   throw new BadRequestException('At least one document file is required');
+		   }
+		   if (!Array.isArray(documents) || documents.length !== files.length) {
+			   throw new BadRequestException('Documents metadata and files count mismatch');
+		   }
 
-		if (!['draft', 'submitted', 'under_review'].includes(application.status)) {
-			throw new BadRequestException(
-				'Documents can only be uploaded for draft, submitted, or under review applications',
-			);
-		}
+		   // Enforce all required types must be uploaded at once
+		   const requiredTypes = [
+			   'application_form',
+			   'business_registration',
+			   'tax_certificate',
+			   'company_profile',
+			   'references',
 
-		const extension = this.resolveDocumentExtension(file);
+		   ];
+		   const uploadedTypes = documents.map(doc => doc.type);
+		   const missingRequired = requiredTypes.filter(type => !uploadedTypes.includes(type));
+		   if (missingRequired.length > 0) {
+			   throw new BadRequestException(
+				   `Missing required document types: ${missingRequired.join(', ')}`
+			   );
+		   }
+
+		   if (!['draft', 'submitted'].includes(application.status)) {
+			   throw new BadRequestException(
+				   'Documents can only be uploaded for draft or submitted applications',
+			   );
+		   }
+
 		const relativeDirectory = join('uploads', 'application-documents');
 		const absoluteDirectory = join(process.cwd(), relativeDirectory);
 		await mkdir(absoluteDirectory, { recursive: true });
 
-		const storedFileName = `${randomUUID()}${extension}`;
-		const relativePath = join(relativeDirectory, storedFileName);
-		const absolutePath = join(process.cwd(), relativePath);
-		await writeFile(absolutePath, file.buffer);
+	const createdDocs: PrismaDocument[] = [];
+	   for (let i = 0; i < files.length; i++) {
+		   const file = files[i];
+		   const docMeta = documents[i];
+		   const extension = this.resolveDocumentExtension(file);
+		   const storedFileName = `${randomUUID()}${extension}`;
+		   const relativePath = join(relativeDirectory, storedFileName);
+		   const absolutePath = join(process.cwd(), relativePath);
+		   await writeFile(absolutePath, file.buffer);
+				   if (!Object.values(document_type).includes(docMeta.type as document_type)) {
+					   throw new BadRequestException(`Invalid document type: ${docMeta.type}`);
+				   }
+				   const created = await this.prisma.document.create({
+					   data: {
+						   applicationId,
+						   type: docMeta.type as document_type,
+						   fileName: file.originalname || storedFileName,
+						   filePath: relativePath,
+					   },
+				   });
 
-		const created = await this.prisma.document.create({
-			data: {
-				applicationId,
-				type: dto.type,
-				fileName: file.originalname || storedFileName,
-				filePath: relativePath,
-			},
-		});
-
-		await this.auditService.log({
-			userId,
-			action: AuditAction.UPLOAD_DOCUMENT,
-			entity: AuditEntity.DOCUMENT,
-			entityId: created.id,
-			details: {
-				applicationId,
-				type: created.type,
-				fileName: created.fileName,
-				description: dto.description ?? null,
-				createdByRole: actor.role,
-				createdByEmail: actor.email,
-			},
-		});
-
-		return created;
+		   await this.auditService.log({
+			   userId,
+			   action: AuditAction.UPLOAD_DOCUMENT,
+			   entity: AuditEntity.DOCUMENT,
+			   entityId: created.id,
+			   details: {
+				   applicationId,
+				   type: created.type,
+				   fileName: created.fileName,
+				   description: docMeta.description ?? null,
+				   createdByRole: actor.role,
+				   createdByEmail: actor.email,
+			   },
+		   });
+		   createdDocs.push(created);
+	   }
+	   // Fetch and return the full list of documents for this application after upload
+	   const allDocuments = await this.prisma.document.findMany({
+		   where: { applicationId },
+		   orderBy: { uploadedAt: 'desc' },
+	   });
+	   console.log('[uploadApplicationDocuments] All documents:', allDocuments);
+	   return allDocuments;
 	}
 
 	async listApplicationDocuments(userId: string, applicationId: string) {
-		await this.getOwnedApplication(userId, applicationId);
-
-		return this.prisma.document.findMany({
-			where: { applicationId },
-			orderBy: { uploadedAt: 'desc' },
-		});
+		console.log('[listApplicationDocuments] Request:', { userId, applicationId });
+		try {
+			await this.getOwnedApplication(userId, applicationId);
+			const documents = await this.prisma.document.findMany({
+				where: { applicationId },
+				orderBy: { uploadedAt: 'desc' },
+			});
+			console.log('[listApplicationDocuments] Success:', documents);
+			return documents;
+		} 		
+		 catch (error) {
+		  if (error instanceof Error) {
+			console.error('[listApplicationDocuments] Error:', error.message, error.stack);
+		  } else {
+			console.error('[listApplicationDocuments] Unknown error:', error);
+		  }
+		  throw error;
+		}
+	
 	}
 
 	async getDocumentForDownload(userId: string, role: string, documentId: string) {
@@ -369,11 +402,11 @@ export class SupplierApplicationService {
 			throw new NotFoundException('Document not found');
 		}
 
-		if (!['draft', 'submitted', 'under_review'].includes(document.application.status)) {
-			throw new BadRequestException(
-				'Documents can only be deleted for draft, submitted, or under review applications',
-			);
-		}
+		   if (!['draft', 'submitted'].includes(document.application.status)) {
+			   throw new BadRequestException(
+				   'Documents can only be deleted for draft or submitted applications',
+			   );
+		   }
 
 		await this.prisma.document.delete({ where: { id: documentId } });
 
@@ -413,7 +446,16 @@ export class SupplierApplicationService {
 
 		return supplier;
 	}
-
+	async deleteApplication(userId: string, applicationId: string) {
+	 const application = await this.getOwnedApplication(userId, applicationId);
+	 if (!['draft', 'withdrawn'].includes(application.status)) {
+		 throw new BadRequestException('Only draft or withdrawn applications can be deleted');
+	 }
+	 await this.prisma.document.deleteMany({ where: { applicationId } });
+	 await this.prisma.application.delete({ where: { id: applicationId } });
+	 return { message: 'Application deleted successfully' };
+ }
+	
 	private async getUserAuditContext(userId: string) {
 		const user = await this.prisma.user.findUnique({
 			where: { id: userId },

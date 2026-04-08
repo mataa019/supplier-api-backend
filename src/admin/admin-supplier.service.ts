@@ -4,10 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CategoryStatus } from '@prisma/client';
+import { category_status } from '@prisma/client';
 import { access, mkdir, unlink, writeFile } from 'fs/promises';
 import { randomUUID } from 'crypto';
-import { extname, isAbsolute, join, relative } from 'path';
+import { basename, extname, isAbsolute, join, relative } from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction, AuditEntity } from '../audit/audit.types';
@@ -62,7 +62,11 @@ export class AdminSupplierService {
     userId: string,
     userRole?: string,
     userEmail?: string,
+    file?: any,
   ) {
+    // Log the incoming request body for debugging
+    console.log('createCategory request body:', dto);
+
     if (!dto?.name?.trim()) {
       throw new BadRequestException('name is required');
     }
@@ -75,13 +79,17 @@ export class AdminSupplierService {
       throw new BadRequestException('application Fee cannot be negative');
     }
 
+    if (typeof dto.requirements !== 'string' || !dto.requirements.trim()) {
+      throw new BadRequestException('requirements should not be empty');
+    }
+    // Create the category with documentTemplate as null (file upload is a separate step)
     const created = await this.prisma.category.create({
       data: {
         name: dto.name.trim(),
         description: dto.description?.trim() || null,
         applicationFee: dto.applicationFee,
-        status: dto.status ? (dto.status as CategoryStatus) : undefined,
-        documentTemplate: dto.documentTemplate?.trim() || null,
+        status: dto.status ? (dto.status as category_status) : undefined,
+        documentTemplate: null,
         Requirements: dto.requirements.trim(),
       },
     });
@@ -108,6 +116,7 @@ export class AdminSupplierService {
     userId: string,
     userRole?: string,
     userEmail?: string,
+    file?: any,
   ) {
     await this.ensureCategoryExists(categoryId);
 
@@ -127,32 +136,77 @@ export class AdminSupplierService {
             ? undefined
             : (dto.description?.trim() || null),
         applicationFee: dto.applicationFee,
-        status: dto.status ? (dto.status as CategoryStatus) : undefined,
+        status: dto.status ? (dto.status as category_status) : undefined,
         Requirements: dto.requirements?.trim(),
-        documentTemplate:
-          dto.documentTemplate === undefined
-            ? undefined
-            : (dto.documentTemplate?.trim() || null),
       },
     });
+
+    // If file is provided, upload and update documentTemplate
+    let finalUpdated = updated;
+    if (file) {
+      const uploadResult = await this.uploadCategoryTemplateDocument(
+        categoryId,
+        file,
+        userId,
+        userRole,
+        userEmail,
+      );
+      finalUpdated = { ...updated, documentTemplate: uploadResult.category.documentTemplate };
+    }
 
     await this.auditService.log({
       userId,
       action: AuditAction.UPDATE_CATEGORY,
       entity: AuditEntity.CATEGORY,
-      entityId: updated.id,
+      entityId: finalUpdated.id,
       details: {
-        name: updated.name,
-        status: updated.status,
-        applicationFee: updated.applicationFee,
+        name: finalUpdated.name,
+        status: finalUpdated.status,
+        applicationFee: finalUpdated.applicationFee,
         createdByRole: userRole,
         createdByEmail: userEmail,
       },
     });
 
-    return updated;
+    return finalUpdated;
   }
 
+  async getCategoryTemplateDocument(categoryId: string) {
+      const category = await this.prisma.category.findUnique({
+        where: { id: categoryId },
+        select: {
+          id: true,
+          name: true,
+          documentTemplate: true,
+        },
+      });
+  
+      if (!category) {
+        throw new NotFoundException('Category not found');
+      }
+  
+      if (!category.documentTemplate) {
+        throw new NotFoundException('No template document attached to this category');
+      }
+  
+      const absolutePath = isAbsolute(category.documentTemplate)
+        ? category.documentTemplate
+        : join(process.cwd(), category.documentTemplate);
+  
+      try {
+        await access(absolutePath);
+      } catch {
+        throw new NotFoundException('Template document not found on server');
+      }
+  
+      return {
+        categoryId: category.id,
+        categoryName: category.name,
+        absolutePath,
+        fileName: basename(absolutePath),
+      };
+    }
+    
   async deleteCategory(
     categoryId: string,
     userId: string,
@@ -170,23 +224,25 @@ export class AdminSupplierService {
         'Cannot delete category with existing applications',
       );
     }
-
+    // Remove template document (if any) and handle audit logging
     if (category.documentTemplate) {
-      const oldPath = this.toAbsolutePath(category.documentTemplate);
-      await this.deleteFileIfExists(oldPath);
+      await this.removeCategoryTemplateDocument(
+        categoryId,
+        userId,
+        userRole,
+        userEmail
+      );
     }
 
     await this.prisma.category.delete({
       where: { id: categoryId },
     });
-
     await this.auditService.log({
       userId,
       action: AuditAction.DELETE_CATEGORY,
       entity: AuditEntity.CATEGORY,
       entityId: categoryId,
       details: {
-        documentTemplate: category.documentTemplate ?? null,
         createdByRole: userRole,
         createdByEmail: userEmail,
       },

@@ -1,106 +1,11 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
   engineType = "binary"
-  // output path omitted so Prisma uses the default location under node_modules
 }
 
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
-}
-
-model Audit {
-  id        String   @id @default(cuid())
-  user      User?    @relation(fields: [userId], references: [id])
-  userId    String?
-  action    String       // e.g. "LOGIN", "REGISTER", "UPDATE_APPLICATION"
-  entity    String?      // e.g. "User", "Application", "Payment"
-  entityId  String?      // ID of the affected record
-  details   String?      // JSON or free-text with extra context
-  ipAddress String?      // client IP for security audits
-  createdAt DateTime @default(now())
-}
-
-model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  password      String
-  role          Role
-  status        Status
-  emailVerified Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  supplier      Supplier?
-  audits        Audit[]
-  otps          Otp[]
-}
-
-model Otp {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  code      String
-  type      OtpType  @default(email_verification)
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@index([userId, type])
-}
-
-enum OtpType {
-  email_verification
-  password_reset
-}
-
-enum Role {
-  supplier
-  admin
-  manager
-}
-
-enum Status {
-  active
-  inactive
-}
-
-model Supplier {
-  id                 String          @id @default(cuid())
-  user               User            @relation(fields: [userId], references: [id])
-  userId             String          @unique
-  companyName        String
-  tpin               String
-  registrationNumber String
-  contactPerson      String
-  phone              String
-  email              String
-  address            String
-  status             SupplierStatus  @default(active)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  applications       Application[]
-}
-
-enum SupplierStatus {
-  active
-  suspended
-}
-
-model Category {
-  id               String          @id @default(cuid())
-  name             String
-  description      String?
-  applicationFee   Float
-  Requirements     String         
-  documentTemplate String?
-  status           CategoryStatus  @default(active)
-  createdAt        DateTime        @default(now())
-  applications     Application[]
-}
-
-enum CategoryStatus {
-  active
-  inactive
 }
 
 model Application {
@@ -109,17 +14,146 @@ model Application {
   supplierId  String
   category    Category           @relation(fields: [categoryId], references: [id])
   categoryId  String
-  status      ApplicationStatus  @default(draft)
+  status      application_status @default(draft)
   submittedAt DateTime?
   reviewedAt  DateTime?
   reviewedBy  String?
   remarks     String?
   createdAt   DateTime           @default(now())
   documents   Document[]
-  payments    Payment[]
+  payments    payment[]
 }
 
-enum ApplicationStatus {
+model audit {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      user?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String?
+  entityId  String?
+  details   String   @db.Text
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId], map: "Audit_userId_fkey")
+}
+
+model Category {
+  id               String          @id @default(cuid())
+  name             String
+  description      String?
+  applicationFee   Float
+  Requirements     String
+  documentTemplate String?
+  status           category_status @default(active)
+  createdAt        DateTime        @default(now())
+  applications     Application[]
+}
+
+model Document {
+  id            String        @id @default(uuid())
+  applicationId String
+  type          document_type
+  fileName      String
+  filePath      String
+  uploadedAt    DateTime      @default(now())
+  application   Application   @relation(fields: [applicationId], references: [id])
+
+  @@index([applicationId], map: "Document_applicationId_fkey")
+}
+
+model otp {
+  id        String   @id @default(uuid())
+  userId    String
+  code      String
+  type      otp_type @default(email_verification)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user user @relation(fields: [userId], references: [id]) // <-- Add this line
+
+  @@index([userId, type], map: "Otp_userId_type_idx")
+}
+
+model payment {
+  id             String         @id
+  applicationId  String
+  amount         Float
+  method         payment_method
+  transactionRef String
+  proofFile      String
+  status         payment_status @default(pending)
+  submittedAt    DateTime       @default(now())
+  verifiedAt     DateTime?
+  verifiedBy     String?
+  application    Application    @relation(fields: [applicationId], references: [id])
+
+  @@index([applicationId], map: "Payment_applicationId_fkey")
+}
+
+model Supplier {
+  id                 String          @id @default(cuid())
+  user               user            @relation(fields: [userId], references: [id])
+  userId             String          @unique
+  companyName        String
+  tpin               String
+  registrationNumber String
+  contactPerson      String
+  phone              String
+  email              String
+  address            String
+  status             supplier_status @default(active)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  applications       Application[]
+}
+
+model user {
+  id            String      @id @default(uuid())
+  email         String      @unique(map: "User_email_key")
+  password      String
+  role          user_role
+  status        user_status
+  emailVerified Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  supplier      Supplier?
+  otps          otp[]
+  audits        audit[]
+}
+
+model pendingregistration {
+  id               String                   @id @default(uuid()) 
+  email            String                   @unique(map: "PendingRegistration_email_key")
+  password         String
+  role             pendingregistration_role
+  registrationData Json?
+  otp              String
+  otpExpiresAt     DateTime
+  createdAt        DateTime                 @default(now())
+}
+
+enum document_type {
+  application_form
+  business_registration
+  tax_certificate
+  company_profile
+  references
+}
+
+enum payment_method {
+  bank_transfer
+  mobile_money
+  card
+}
+
+enum otp_type {
+  email_verification
+  password_reset
+}
+
+enum application_status {
   draft
   submitted
   under_review
@@ -128,50 +162,22 @@ enum ApplicationStatus {
   withdrawn
 }
 
-model Document {
-  id            String       @id @default(cuid())
-  application   Application  @relation(fields: [applicationId], references: [id])
-  applicationId String
-  type          DocumentType
-  fileName      String
-  filePath      String
-  uploadedAt    DateTime     @default(now())
+enum user_role {
+  supplier
+  admin
+  manager
+  viewer
 }
 
-enum DocumentType {
-  business_registration
-  tax_certificate
-  bank_letter
-  insurance
-  other
+enum user_status {
+  active
+  inactive
 }
 
-model Payment {
-  id             String        @id @default(cuid())
-  application    Application   @relation(fields: [applicationId], references: [id])
-  applicationId  String
-  amount         Float
-  method         PaymentMethod
-  transactionRef String
-  proofFile      String
-  status         PaymentStatus @default(pending)
-  submittedAt    DateTime      @default(now())
-  verifiedAt     DateTime?
-  verifiedBy     String?
+enum category_status {
+  active
+  inactive
 }
-
-enum PaymentMethod {
-  bank_transfer
-  mobile_money
-  card
-}
-
-enum PaymentStatus {
-  pending
-  verified
-  rejected
-}
-
 
 enum payment_status {
   pending
@@ -182,4 +188,10 @@ enum payment_status {
 enum supplier_status {
   active
   suspended
+}
+
+enum pendingregistration_role {
+  admin
+  supplier
+  user
 }

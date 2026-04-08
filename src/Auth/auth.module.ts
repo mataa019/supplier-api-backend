@@ -20,7 +20,7 @@ import { MailModule } from '../mail/mail.module';
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
         // set expiration to 15 minutes (900 seconds)
-        signOptions: { expiresIn: 900 },
+        signOptions: { expiresIn: 20000 },
       }),
     }),
   ],

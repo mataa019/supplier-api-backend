@@ -8,6 +8,7 @@ import {
 	ReviewApplicationDto,
 	WithdrawApplicationDto,
 } from '../supplier/dto/application.dto';
+import { join } from 'path';
 
 @Injectable()
 export class AdminApplicationService {
@@ -25,7 +26,7 @@ export class AdminApplicationService {
 		if (query.status) where.status = query.status;
 		if (query.categoryId) where.categoryId = query.categoryId;
 		if (query.supplierId) where.supplierId = query.supplierId;
-		if (query.search) {
+		if (query.search && query.search.trim() !== '') {
 			where.OR = [
 				{ remarks: { contains: query.search } },
 				{ category: { name: { contains: query.search } } },
@@ -77,46 +78,25 @@ export class AdminApplicationService {
 		});
 	}
 
-	async markUnderReview(
-		applicationId: string,
-		reviewerId: string,
-		reviewerRole: string,
-		reviewerEmail: string,
-		dto: ReviewApplicationDto,
-	) {
-		const application = await this.ensureApplicationExists(applicationId);
-
-		if (!['submitted', 'under_review'].includes(application.status)) {
-			throw new BadRequestException(
-				'Only submitted applications can be marked under review',
-			);
-		}
-
-		const updated = await this.prisma.application.update({
-			where: { id: applicationId },
-			data: {
-				status: 'under_review',
-				reviewedAt: new Date(),
-				reviewedBy: reviewerId,
-				remarks: dto.remarks?.trim() || null,
-			},
-			include: this.applicationInclude(),
-		});
-
-		await this.auditService.log({
-			userId: reviewerId,
-			action: AuditAction.REVIEW_APPLICATION,
-			entity: AuditEntity.APPLICATION,
-			entityId: updated.id,
-			details: {
-				status: updated.status,
-				createdByRole: reviewerRole,
-				createdByEmail: reviewerEmail,
-			},
-		});
-
-		return updated;
+	/**
+ * Get a document for download by application and document ID
+ */
+async getDocumentForDownload(applicationId: string, documentId: string) {
+	// Ensure the application exists
+	await this.ensureApplicationExists(applicationId);
+	// Find the document
+	const document = await this.prisma.document.findFirst({
+		where: { id: documentId, applicationId },
+	});
+	if (!document) {
+		throw new NotFoundException('Document not found');
 	}
+	const absolutePath = join(process.cwd(), document.filePath);
+	return {
+		fileName: document.fileName,
+		absolutePath,
+	};
+}
 
 	async approveApplication(
 		applicationId: string,

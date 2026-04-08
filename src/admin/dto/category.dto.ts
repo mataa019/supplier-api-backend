@@ -20,17 +20,15 @@ export class CreateCategoryDto {
   @ApiProperty({ example: 'Business registration certificate, TPIN certificate, Bank letter', description: 'Requirements for this category' })
   @IsNotEmpty()
   @IsString()
-  requirements: string;
+  requirements: string | undefined;
 
   @ApiPropertyOptional({ enum: ['active', 'inactive'], default: 'active', description: 'Category status' })
   @IsOptional()
   @IsEnum(['active', 'inactive'])
   status?: 'active' | 'inactive';
+  
 
-  @ApiPropertyOptional({ description: 'Optional template document path (managed by upload endpoint)' })
-  @IsOptional()
-  @IsString()
-  documentTemplate?: string;
+  
 }
 
 export class UpdateCategoryDto {
@@ -60,8 +58,4 @@ export class UpdateCategoryDto {
   @IsEnum(['active', 'inactive'])
   status?: 'active' | 'inactive';
 
-  @ApiPropertyOptional({ nullable: true, description: 'Template document path' })
-  @IsOptional()
-  @IsString()
-  documentTemplate?: string | null;
 }

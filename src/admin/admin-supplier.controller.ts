@@ -1,12 +1,17 @@
+import express from 'express';
+import { createReadStream } from 'fs';
+ 
 import {
   Body,
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
   Req,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -43,26 +48,31 @@ export class AdminSupplierController {
 
   @Post('categories')
   @Roles('admin', 'manager')
+  @UseInterceptors(FileInterceptor('file'))
   @ApiAdminEndpoint('Create category', 'Category created')
   async createCategory(
     @Req() req: any,
     @Body() body: CreateCategoryDto,
+    @UploadedFile() file: any,
   ) {
     return this.adminSupplierService.createCategory(
       body,
       req.user.id,
       req.user.role,
       req.user.email,
+      file,
     );
   }
 
   @Patch('categories/:categoryId')
   @Roles('admin', 'manager')
+  @UseInterceptors(FileInterceptor('file'))
   @ApiAdminEndpoint('Update category', 'Category updated')
   async updateCategory(
     @Req() req: any,
     @Param('categoryId') categoryId: string,
     @Body() body: UpdateCategoryDto,
+    @UploadedFile() file: any,
   ) {
     return this.adminSupplierService.updateCategory(
       categoryId,
@@ -70,7 +80,25 @@ export class AdminSupplierController {
       req.user.id,
       req.user.role,
       req.user.email,
+      file,
     );
+  }
+  
+  @Get('categories/:categoryId/templatedownload')
+  @Roles('admin', 'manager')
+  @ApiAdminEndpoint('Download category template document', 'Downloads the template document for a category')
+  async downloadCategoryTemplate(
+    @Param('categoryId') categoryId: string,
+    @Res() res: express.Response,
+  ) {
+    const doc = await this.adminSupplierService.getCategoryTemplateDocument(categoryId);
+    if (!doc || !doc.absolutePath) {
+      throw new NotFoundException('Template document not found');
+    }
+    res.setHeader('Content-Disposition', `attachment; filename="${doc.fileName}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    const fileStream = createReadStream(doc.absolutePath);
+    fileStream.pipe(res);
   }
 
   @Delete('categories/:categoryId')

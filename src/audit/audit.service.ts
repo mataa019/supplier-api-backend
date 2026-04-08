@@ -33,8 +33,8 @@ export class AuditService {
         action: params.action,
         entity: params.entity,
         entityId: params.entityId,
-        details: params.details ? JSON.stringify(params.details) : undefined,
-        ipAddress: params.ipAddress,
+        details: params.details ? JSON.stringify(params.details) : '',
+        ipAddress: params.ipAddress ?? null,
       },
     });
   }

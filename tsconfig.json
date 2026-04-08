@@ -21,6 +21,8 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
+    ,
+    "strictPropertyInitialization": false
   },
   "include": [
     "src/**/*.ts"
