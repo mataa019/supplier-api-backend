@@ -26,7 +26,9 @@ export class CreateCategoryDto {
   @IsOptional()
   @IsEnum(['active', 'inactive'])
   status?: 'active' | 'inactive';
+  
 
+  
 }
 
 export class UpdateCategoryDto {

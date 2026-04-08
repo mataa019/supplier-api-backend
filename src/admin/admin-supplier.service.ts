@@ -7,7 +7,7 @@ import {
 import { category_status } from '@prisma/client';
 import { access, mkdir, unlink, writeFile } from 'fs/promises';
 import { randomUUID } from 'crypto';
-import { extname, isAbsolute, join, relative } from 'path';
+import { basename, extname, isAbsolute, join, relative } from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction, AuditEntity } from '../audit/audit.types';
@@ -64,6 +64,9 @@ export class AdminSupplierService {
     userEmail?: string,
     file?: any,
   ) {
+    // Log the incoming request body for debugging
+    console.log('createCategory request body:', dto);
+
     if (!dto?.name?.trim()) {
       throw new BadRequestException('name is required');
     }
@@ -79,7 +82,7 @@ export class AdminSupplierService {
     if (typeof dto.requirements !== 'string' || !dto.requirements.trim()) {
       throw new BadRequestException('requirements should not be empty');
     }
-
+    // Create the category with documentTemplate as null (file upload is a separate step)
     const created = await this.prisma.category.create({
       data: {
         name: dto.name.trim(),
@@ -90,18 +93,6 @@ export class AdminSupplierService {
         Requirements: dto.requirements.trim(),
       },
     });
-
-    // If file is provided, upload and update documentTemplate
-    if (file) {
-      const uploadResult = await this.uploadCategoryTemplateDocument(
-        created.id,
-        file,
-        userId,
-        userRole,
-        userEmail,
-      );
-      created.documentTemplate = uploadResult.category.documentTemplate;
-    }
 
     await this.auditService.log({
       userId,
@@ -180,6 +171,42 @@ export class AdminSupplierService {
     return finalUpdated;
   }
 
+  async getCategoryTemplateDocument(categoryId: string) {
+      const category = await this.prisma.category.findUnique({
+        where: { id: categoryId },
+        select: {
+          id: true,
+          name: true,
+          documentTemplate: true,
+        },
+      });
+  
+      if (!category) {
+        throw new NotFoundException('Category not found');
+      }
+  
+      if (!category.documentTemplate) {
+        throw new NotFoundException('No template document attached to this category');
+      }
+  
+      const absolutePath = isAbsolute(category.documentTemplate)
+        ? category.documentTemplate
+        : join(process.cwd(), category.documentTemplate);
+  
+      try {
+        await access(absolutePath);
+      } catch {
+        throw new NotFoundException('Template document not found on server');
+      }
+  
+      return {
+        categoryId: category.id,
+        categoryName: category.name,
+        absolutePath,
+        fileName: basename(absolutePath),
+      };
+    }
+    
   async deleteCategory(
     categoryId: string,
     userId: string,

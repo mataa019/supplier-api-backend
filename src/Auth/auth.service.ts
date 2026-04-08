@@ -239,77 +239,146 @@ export class AuthService {
   }
 
   async verifyOtp(dto: VerifyOtpDto, ipAddress?: string) {
-    // Check for pending registration
+    // 1. Check for pending registration OTP (registration flow)
     const pending = await this.prisma.pendingregistration.findFirst({
       where: {
         otp: dto.otp,
         otpExpiresAt: { gte: new Date() },
       },
     });
-    if (!pending) {
-      throw new BadRequestException('Invalid or expired OTP');
-    }
-    // Check if user already exists (should not happen, but for safety)
-    const existingUser = await this.prisma.user.findUnique({ where: { email: pending.email } });
-    if (existingUser) {
+    if (pending) {
+      const existingUser = await this.prisma.user.findUnique({ where: { email: pending.email } });
+      if (existingUser) {
+        // Clean up pending registration
+        await this.prisma.pendingregistration.delete({ where: { email: pending.email } });
+        throw new ConflictException('User already registered.');
+      }
+      // Create user and supplier
+      let user;
+      if (pending.role === 'supplier') {
+        if (!pending.registrationData) {
+          throw new BadRequestException('Registration data is missing.');
+        }
+        user = await this.prisma.user.create({
+          data: {
+            email: pending.email,
+            password: pending.password,
+            role: 'supplier',
+            status: 'active',
+            emailVerified: true,
+            supplier: {
+              create: pending.registrationData as any,
+            },
+          },
+          include: { supplier: true },
+        });
+      } else {
+        user = await this.prisma.user.create({
+          data: {
+            email: pending.email,
+            password: pending.password,
+            role: pending.role === 'user' ? 'viewer' : pending.role,
+            status: 'active',
+            emailVerified: true,
+          },
+        });
+      }
       // Clean up pending registration
       await this.prisma.pendingregistration.delete({ where: { email: pending.email } });
-      throw new ConflictException('User already registered.');
-    }
-    let user;
-    // Create user and supplier
-   if (pending.role === 'supplier') {
-     if (!pending.registrationData) {
-    throw new BadRequestException('Registration data is missing.');
-         }
-  user = await this.prisma.user.create({
-    data: {
-      email: pending.email,
-      password: pending.password,
-      role: 'supplier',
-      status: 'active',
-      emailVerified: true,
-      supplier: {
-        create: pending.registrationData as any, // Cast to any to satisfy Prisma
-      },
-    },
-    include: { supplier: true },
-  });
-} else {
-      user = await this.prisma.user.create({
-        data: {
-          email: pending.email,
-          password: pending.password,
-          role: pending.role === 'user' ? 'viewer' : pending.role, 
-          status: 'active',
-          emailVerified: true,
+      // Generate token
+      const token = this.generateToken(user.id, user.email, user.role);
+      await this.auditService.log({
+        userId: user.id,
+        action: AuditAction.REGISTER,
+        entity: AuditEntity.USER,
+        entityId: user.id,
+        details: {
+          email: user.email,
+          action: 'email_verified',
+          createdByRole: user.role,
+          createdByEmail: user.email,
         },
+        ipAddress,
       });
+      return {
+        message: 'Email verified and registration complete.',
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          supplier: user.supplier,
+        },
+        accessToken: token,
+      };
     }
-    // Clean up pending registration
-    await this.prisma.pendingregistration.delete({ where: { email: pending.email } });
-    // Generate token
-    const token = this.generateToken(user.id, user.email, user.role);
+
+    // 2. Check for login OTP (login flow)
+    const otpRecord = await this.prisma.otp.findFirst({
+      where: {
+        code: dto.otp,
+        type: 'email_verification',
+        used: false,
+        expiresAt: { gte: new Date() },
+      },
+      include: {
+        user: {
+          include: {
+            supplier: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!otpRecord) {
+      throw new BadRequestException('Invalid or expired OTP');
+    }
+    const user = otpRecord.user;
+    if (user.status !== 'active' && user.emailVerified) {
+      throw new BadRequestException('Account is inactive');
+    }
+    await this.prisma.$transaction([
+      this.prisma.otp.update({
+        where: { id: otpRecord.id },
+        data: { used: true },
+      }),
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true, status: 'active' },
+      }),
+    ]);
+    const refreshedUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      include: { supplier: true },
+    });
+    if (!refreshedUser) {
+      throw new NotFoundException('User not found');
+    }
+    // Generate token after successful verification
+    const token = this.generateToken(
+      refreshedUser.id,
+      refreshedUser.email,
+      refreshedUser.role,
+    );
     await this.auditService.log({
-      userId: user.id,
-      action: AuditAction.REGISTER,
+      userId: refreshedUser.id,
+      action: AuditAction.LOGIN,
       entity: AuditEntity.USER,
-      entityId: user.id,
+      entityId: refreshedUser.id,
       details: {
-        email: user.email,
+        email: refreshedUser.email,
         action: 'email_verified',
-        createdByRole: user.role,
-        createdByEmail: user.email,
+        createdByRole: refreshedUser.role,
+        createdByEmail: refreshedUser.email,
       },
       ipAddress,
     });
     return {
-      message: 'Email verified and registration complete.',
+      message: 'Login successful',
       user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        supplier: user.supplier,
+        id: refreshedUser.id,
+        email: refreshedUser.email,
+        role: refreshedUser.role,
+        supplier: refreshedUser.supplier,
       },
       accessToken: token,
     };
