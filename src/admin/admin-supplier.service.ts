@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CategoryStatus } from '@prisma/client';
+import { category_status } from '@prisma/client';
 import { access, mkdir, unlink, writeFile } from 'fs/promises';
 import { randomUUID } from 'crypto';
 import { extname, isAbsolute, join, relative } from 'path';
@@ -85,7 +85,7 @@ export class AdminSupplierService {
         name: dto.name.trim(),
         description: dto.description?.trim() || null,
         applicationFee: dto.applicationFee,
-        status: dto.status ? (dto.status as CategoryStatus) : undefined,
+        status: dto.status ? (dto.status as category_status) : undefined,
         documentTemplate: null,
         Requirements: dto.requirements.trim(),
       },
@@ -145,7 +145,7 @@ export class AdminSupplierService {
             ? undefined
             : (dto.description?.trim() || null),
         applicationFee: dto.applicationFee,
-        status: dto.status ? (dto.status as CategoryStatus) : undefined,
+        status: dto.status ? (dto.status as category_status) : undefined,
         Requirements: dto.requirements?.trim(),
       },
     });
