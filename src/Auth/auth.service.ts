@@ -114,62 +114,34 @@ export class AuthService {
 
 
   async registerAdmin(dto: AdminRegisterDto, ipAddress?: string) {
-    // Check if user already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-
+    // Check if user or pending registration already exists
+    const existingUser = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existingUser) {
       throw new ConflictException('Email already registered');
     }
-
+    const existingPending = await this.prisma.pendingregistration.findUnique({ where: { email: dto.email } });
+    if (existingPending) {
+      throw new ConflictException('A registration is already pending for this email. Please verify OTP.');
+    }
     // Hash password
     const hashedPassword = await bcrypt.hash(dto.password, 10);
-
-    // Create admin user (no supplier relation)
-    const user = await this.prisma.user.create({
+    // Generate OTP
+    const otp = await this.generateUniqueOtpCode();
+    // Store registration data in PendingRegistration
+    await this.prisma.pendingregistration.create({
       data: {
         email: dto.email,
         password: hashedPassword,
         role: 'admin',
-        status: 'inactive',
+        registrationData: undefined,
+        otp,
+        otpExpiresAt: this.getOtpExpiry(),
       },
     });
-
-    const otp = await this.generateUniqueOtpCode();
-    await this.prisma.otp.create({
-      data: {
-        userId: user.id,
-        code: otp,
-        type: 'email_verification',
-        expiresAt: this.getOtpExpiry(),
-      },
-    });
-
-    await this.mailService.sendOtp(user.email, otp);
-
-    // Audit: admin registration
-    await this.auditService.log({
-      userId: user.id,
-      action: AuditAction.REGISTER,
-      entity: AuditEntity.USER,
-      entityId: user.id,
-      details: {
-        email: user.email,
-        role: user.role,
-        createdByRole: user.role,
-        createdByEmail: user.email,
-      },
-      ipAddress,
-    });
-
+    // Send OTP email
+    await this.mailService.sendOtp(dto.email, otp);
     return {
-      message: 'Admin registration successful. Please verify your email with the OTP sent.',
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      },
+      message: 'Admin registration initiated. Please verify your email with the OTP sent.',
     };
   }
 

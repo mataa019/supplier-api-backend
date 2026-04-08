@@ -1,5 +1,5 @@
 
-import { DocumentType, Document as PrismaDocument } from '@prisma/client';
+import { document_type, Document as PrismaDocument } from '@prisma/client';
 import {
 	BadRequestException,
 	Injectable,
@@ -140,11 +140,16 @@ export class SupplierApplicationService {
 
 			   console.log('[updateApplication] Success:', updated);
 			   return updated;
-		   } catch (error) {
-			   console.error('[updateApplication] Error:', error.message, error.stack);
-			   throw error;
-		   }
-
+		   } 		
+		catch (error) {
+		  if (error instanceof Error) {
+			console.error('list Application Documents Error:', error.message, error.stack);
+		  } else {
+			console.error('list Application Documents Unknown error:', error);
+		  }
+		  throw error;
+		}
+		
 	}
 
 	async submitApplication(
@@ -280,18 +285,17 @@ export class SupplierApplicationService {
 		   const relativePath = join(relativeDirectory, storedFileName);
 		   const absolutePath = join(process.cwd(), relativePath);
 		   await writeFile(absolutePath, file.buffer);
-		   // Validate and cast docMeta.type to DocumentType
-		   if (!Object.values(DocumentType).includes(docMeta.type as DocumentType)) {
-			   throw new BadRequestException(`Invalid document type: ${docMeta.type}`);
-		   }
-		   const created = await this.prisma.document.create({
-			   data: {
-				   applicationId,
-				   type: docMeta.type as DocumentType,
-				   fileName: file.originalname || storedFileName,
-				   filePath: relativePath,
-			   },
-		   });
+				   if (!Object.values(document_type).includes(docMeta.type as document_type)) {
+					   throw new BadRequestException(`Invalid document type: ${docMeta.type}`);
+				   }
+				   const created = await this.prisma.document.create({
+					   data: {
+						   applicationId,
+						   type: docMeta.type as document_type,
+						   fileName: file.originalname || storedFileName,
+						   filePath: relativePath,
+					   },
+				   });
 
 		   await this.auditService.log({
 			   userId,
@@ -328,10 +332,16 @@ export class SupplierApplicationService {
 			});
 			console.log('[listApplicationDocuments] Success:', documents);
 			return documents;
-		} catch (error) {
+		} 		
+		 catch (error) {
+		  if (error instanceof Error) {
 			console.error('[listApplicationDocuments] Error:', error.message, error.stack);
-			throw error;
+		  } else {
+			console.error('[listApplicationDocuments] Unknown error:', error);
+		  }
+		  throw error;
 		}
+	
 	}
 
 	async getDocumentForDownload(userId: string, role: string, documentId: string) {

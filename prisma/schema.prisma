@@ -25,8 +25,9 @@ model Application {
 }
 
 model audit {
-  id        String   @id
+  id        String   @id @default(uuid())
   userId    String?
+  user      user?    @relation(fields: [userId], references: [id])
   action    String
   entity    String?
   entityId  String?
@@ -50,7 +51,7 @@ model Category {
 }
 
 model Document {
-  id            String        @id
+  id            String        @id @default(uuid())
   applicationId String
   type          document_type
   fileName      String
@@ -119,6 +120,7 @@ model user {
   updatedAt     DateTime    @updatedAt
   supplier      Supplier?
   otps          otp[]
+  audits        audit[]
 }
 
 model pendingregistration {
